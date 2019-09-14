@@ -1,5 +1,6 @@
 \documentclass[conference]{IEEEtran}
 
+\usepackage{adjustbox}
 \usepackage{amsmath}
 \usepackage{caption}
 \usepackage[nocompress]{cite}
@@ -68,26 +69,26 @@
 \newgeometry{vmargin=2.25cm, hmargin=2.25cm}
 \title{Integrating CUDA into SNAP}
 
+
 \author{\IEEEauthorblockN{Andrew Lamzed-Short}
 \IEEEauthorblockA{ID: 1897268}}
 
 
 \maketitle
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{abstract}
 
-Mini-applications (``miniapps'') are small-scale, representative versions of large-scale pieces of scientific or engineering-focused software that seek to model the performance of an algorithm or program without actually executing the larger program. In this interim report, it is sought to examine the effects of altering the codebase of one such miniapp called ``SNAP'' from utilising only traditional processing cores to utilising a combination of computational processing cores and graphical processing cores and capabilities (mainly the latter), ultimately examining if a boost in performance can be yielded and justifying if this change can be reflected in the larger-scale software SNAP represents.
+Mini-applications (``miniapps'') are small-scale, representative versions of large-scale pieces of scientific or engineering-focused software that seek to model the performance of an algorithm or program without actually executing the larger program. This project seeks to examine the effects of altering the codebase of one such miniapp called ``SNAP'' from utilising only traditional processing cores to incorporating a mixture of traditional computation in addition to offloading applicable workloads to graphical processing cores, aiming to leverage their increased throughput and capabilities for single instruction, multiple data (SIMD) assignments. Ultimately the hope is to examine the performance of the resulting program to ascertain whether the modification is beneficial to the runtime of the algorithm, justifying if this change can be reflected in the larger-scale software SNAP represents.
 
-To this end, a brief introduction to the field of High-Performance Computing is offered, along with background of the new field of miniapps. The target miniapp SNAP is discussed in addition to outlining the objectives of what the project aims to achieve by modifying it. Current efforts and progress are detailed and reflected upon against the timeline offered in the project proposal previously submitted as part of this project/module. Finally, further work and a future timeline is described.
+To this end, this dissertation details a brief description to the field of High-Performance Computing (``HPC''), along with an introduction and description of the new field of miniapps. Overall aims of the project are outlined before related work in the field of miniapps, application modelling, and related HPC disciplines and projects is presented The target miniapp SNAP is discussed in addition to outlining the objectives of what the project aims to achieve by modifying it. Current efforts and progress are detailed and reflected upon against the timeline offered in the project proposal previously submitted as part of this project/module. Finally, further work and a future timeline is described.
 
 \end{abstract}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Introduction}
+\section{Introduction}\label{introduction}
 
 \subsection{Background}
 
@@ -127,7 +128,7 @@ Mini-applications (``miniapp”) are a new area within the field of High Perform
 
 \subsection{Objectives}
 
-The SN (Discrete Ordinates) Application Proxy (SNAP) is a miniapp that acts as a proxy for discrete ordinates particle transport. It is modelled off another production simulation program developed by the Los Alamos National Laboratory called PARTISN, which solves the linear Boltzmann transport equation (TE)\footnote{Boltzmann Equation: \url{ https://en.wikipedia.org/wiki/Boltzmann_equation}}, simulating neutron criticality and time-independent neutron leakage problems\cite{partisn} in a multi-dimensional phase space. SNAP is a proxy to PARTISN because it provides a concise solution to a discretised, approximated version (though with no real-world relevance) of the same problem PARTISN solves, providing the same data layout, the same number of operations, and loads elements into arrays in approximately the same order.
+The SN (Discrete Ordinates) Application Proxy (SNAP) is a miniapp that acts as a proxy for discrete ordinates particle transport. It is modelled off another production simulation program developed by the Los Alamos National Laboratory (``LANL'') called PARTISN, which solves the linear Boltzmann transport equation (TE)\footnote{Boltzmann Equation: \url{https://en.wikipedia.org/wiki/Boltzmann_equation}\raggedright}, simulating neutron criticality and time-independent neutron leakage problems\cite{partisn} in a multi-dimensional phase space. SNAP is a proxy to PARTISN because it provides a concise solution to a discretised, approximated version (though with no real-world relevance) of the same problem PARTISN solves, providing the same data layout, the same number of operations, and loads elements into arrays in approximately the same order.
 
 The SNAP algorithm works by defining the phase space as seven dimensions: three in space (x, y, z), two in angle (octants, angles), one in energy (groups, or energy-based bins of particles), and one of time (time step). SNAP sweeps across the spatial mesh, starting in each of the octants proceeding towards the antipodal octant, performing a time-dependent calculation in each cell using information from the previous time-step and surrounding cells. This motion forms a wave-front motion that sweeps across the three-dimensional space from corner to corner, with work being divided along each diagonal for parallel execution
 
@@ -159,21 +160,52 @@ Development of the solution must still mimic the behaviour of the original appli
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Project Management}
+\section{Project Management}\label{projectmgmt}
 
-Several factors need to be considered when developing a software project. Management of time constraints is discussed first as producing a novel software project as part of an entire Masters course will run into difficulty - mostly with conflicting or overlapping deadlines but also due to the inevitable problems associated with any software development project. Following on from this, it is also key to highlight how the code was managed and 
+Several factors need to be considered when developing a software project. Management of time constraints is discussed first as producing a novel software project as part of an entire Masters course will run into difficulty - mostly with conflicting or overlapping deadlines but also due to the inevitable problems associated with any software development project. Following on from this, it is also key to highlight how the code was managed and versioned so as to preserve the history of changes and the progression of the project, should ideas need to be experimented with or code recovered should anything unforeseen occur.
 
-Time constraints are always a pressing and important factor to consider when starting a large project. The external largest constraints imposed on this project would be the time required to complete several overlapping courseworks for various MSc modules, in addition to setting aside time to adequately prepare for and take the end of year exams in June and July. To manage these obstacles, the following timeline was developed early on in the research phase of the project to delineate when and how long certain key stages of development were to last for, with built-in highlighting of potential 
+\subsection{Time Constraints}
 
-\subsection{Gantt Chart}
+Time constraints are always a pressing and important factor to consider when starting a large project. The external largest constraints imposed on this project would be the time required to complete several overlapping courseworks for various MSc modules, in addition to setting aside time to adequately prepare for and take the end of year exams in June and July. To manage these obstacles, the timeline presented in Figure \ref{fig:gantt_chart} was developed early on in the research phase of the project to delineate when and how long certain key stages of development were to last for, with built-in highlighting of potential speed-bumps to this project's progression.
+
+\begin{figure*}[h!]
+    % \begin{adjustbox}{max width=0.7\textwidth}
+        \centering
+        \ganttset{calendar week text=\small{\startday}}
+        \begin{ganttchart}[
+            hgrid,x unit=0.1cm,
+            hgrid style/.style={draw=black!5, line width=.75pt},
+            vgrid={draw=none,draw=none},
+            bar label node/.style={text width=2cm,align=right,font=\scriptsize\RaggedLeft,anchor=east},
+            group label node/.style={text width=2cm,align=right,font=\bf\scriptsize\RaggedLeft,anchor=east},
+            time slot format=little-endian]{01-05-2019}{26-09-2019}
+        \gantttitlecalendar{month=shortname, week=4} \\
+        \ganttgroup{Total Duration}{01-07-2019}{12-09-19}\\
+        % Investigation and Design
+        \ganttgroup{Investigation and Design}{01-07-19}{31-07-19}\\
+        \ganttbar{Collating Stacktraces and Data}{01-07-19}{20-07-19}\\
+        \ganttbar{Mathematical Model}{01-07-19}{27-07-19}\\
+        \ganttbar{Finalise CUDA Education}{01-07-19}{31-07-19}\\
+        % Design and implementation
+        \ganttgroup{Design and Implementation}{01-07-19}{30-08-19}\\
+        % Testing
+        \ganttgroup{Testing}{15-07-19}{14-08-19}\\
+        \ganttbar{Local Profiling and Benchmarking}{15-07-19}{14-08-19}\\
+        \ganttbar{Cluster Profiling and Benchmarking}{14-07-19}{14-08-19}\\
+        % Dissertation
+        \ganttgroup{Dissertation}{26-08-19}{12-09-19}\\
+        \ganttbar{Writing}{26-08-19}{10-09-19}\\
+        \ganttbar{Proof Reading and Editing}{5-09-19}{12-09-19}
+        \end{ganttchart}
+    % \end{adjustbox}
+    
+    \caption{The Proposed Timeline of this Project}
+    \label{fig:gantt_chart}
+\end{figure*}
 
 \subsection{Source Control}
 
-\begin{itemize}
-\item Intel® Core™ i7-6700K CPU, clock speed of 4GHz. It is a quad-core CPU with hyperthreading enabled for an apparent core count of 8.
-\item NVIDIA GeForce GTX 1070 graphics card. Pascal architecture that supports the CUDA Compute functionality, 1.5Ghz base core clock, 8GB of GDDR5 memory, and 15 streaming multi-processors.
-\item 16GB of DDR4 RAM
-\end{itemize}
+Github
 
 
 
@@ -186,20 +218,38 @@ Time constraints are always a pressing and important factor to consider when sta
     \item Extensions
 \end{itemize}
 
+\subsubsection{Hardware}
+
+For local testing
+
+\begin{itemize}
+    \item Intel® Core™ i7-6700K CPU, clock speed of 4GHz. It is a quad-core CPU with hyperthreading enabled for an apparent core count of 8.
+    \item NVIDIA GeForce GTX 1070 graphics card. Pascal architecture that supports the CUDA Compute functionality, 1.5Ghz base core clock, 8GB of GDDR5 memory, and 15 streaming multi-processors.
+    \item 16GB of DDR4 RAM
+    \end{itemize}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Investigation}
+\section{Investigation}\label{investigation}
 
 \subsection{SNAP Repository Cloning and Documentation Review}
 
-% ...
+Initial plans involved gaining a fundamental understanding of the nature of the algorithms and data structures that the SNAP program utilises in order to effectively emulate and model its larger counterpart program. LANL provide the full FORTRAN90 source code, in addition to several ports into other, different languages, in the GitHub repository located at \url{https://www.github.com/lanl/snap/}. For the purposes of this project, it will be Intel's C-based port that shall be modified and examined due to ease of use for compilation and finding the appropriate tooling (compilers, syntax highlighters etc.) as well as increased familiarity with the language over FORTRAN90.
+
+The entire repository was forked on GitHub for the purposes of modification. It can be found at \url{https://www.github.com/alshort/snap}. All non-C-based ports were removed from the repository in addition to any miscellaneous files and documentation as these were superfluous. Only the \texttt{qasnap/} and the \texttt{src/} directories (of Intel's code) were kept as these would be the only necessary sets of code needed to build, execute, and test SNAP and this project's proposed modifications.
+
+In the main repository, various presentations and documentation are provided that discuss the reasoning behind creating SNAP, background behind PARTISN and the code SNAP was seeking to model, as well as an overview of some of the implementation details of the main constituent of the approach LANL and Intel took: the ``sweep'' algorithm.
 
 \subsection{Execution, Profiling, and Investigation of Code}
 
 \subsubsection{Compilation}
 
-% mpiicc
+Intel chose to target the C-based port of SNAP towards Intel-based CPUs, hence the decision, as outlined in section \ref{projectmgmt}, to use a machine to locally test the program with having an Intel Core i7-6700K. This decision was made due to the original port writers' knowledge of the benefits that the architecture and proprietary improvements could bring to a strictly MPI-based implementation of SNAP.
+
+GNU make is used to compile all facets of the program, with the main compiler being \texttt{mpiicc}. Whilst \texttt{gcc} is typically used to compile regular, standard C and C++ code, \texttt{icc} is Intel's C++ compiler that was built in order to specifically optimise code to run on Intel-created architectures. This includes optimisations for how memory is specifically accessed, how thread-based parallelisation is handled with regards to the OpenMP specification, data layout improvements, and support for modern iterations of C++ language specifications\footnote{\url{https://software.intel.com/en-us/c-compilers}}. \texttt{mpiicc} is an HPC-specific message-passing library built for use with the \texttt{icc} program (in particular its C-based capabilities). This library implements the Message Passing Interface (MPI) specification version 3.1\cite{intel-mpi-ref} to allow for bi-directional inter-process communication, regardless of how those processes are mapped to the underlying hardware.
+
+Whilst provided in an operation state, this provision is predicated on the correct resources and dependencies being installed and linked up on the executing system. Installation of Intel's MPI libraries is straight-forward but ensuring that they will operate correctly when called is an issue. This
 
 \subsubsection{Execution}
 
@@ -228,6 +278,10 @@ Time constraints are always a pressing and important factor to consider when sta
 
 % ...
 
+\subsection{Test Harness}
+
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -254,12 +308,15 @@ Time constraints are always a pressing and important factor to consider when sta
 
 \section{Conclusion}
 
+\subsection{Limitations}
+
+\subsection{Improvements}
 
 \subsection{Further Work}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\bibliographystyle{unsrt}
+\bibliographystyle{ieeetr}
 \bibliography{dissertation}
 
 \end{document}

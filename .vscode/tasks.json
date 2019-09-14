@@ -12,7 +12,7 @@
             "args": [
                 "-interaction=nonstopmode",
                 "-file-line-error",
-                "*.tex"
+                "${file}"
             ]
         },
         {
@@ -37,7 +37,7 @@
             },
             "command": "texcount",
             "args": [
-                "dissertation.tex"
+                "${file}"
             ],
             "problemMatcher": []
         }
