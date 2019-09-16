@@ -6,11 +6,26 @@
 \usepackage[nocompress]{cite}
 \usepackage{geometry}
 \usepackage{graphicx}
+\usepackage{listings}
 \usepackage{pdflscape}
 \usepackage{pgfgantt}
+\usepgflibrary{patterns}
 \usepackage{ragged2e}
 \usepackage{url}
 \usepackage{verbatim}
+
+\newganttchartelement{contingency}{
+    contingency/.style={
+        shape=rectangle,
+        inner sep=0pt,
+        draw=black!50,
+        very thick,
+        pattern=north east lines
+    }
+}
+\lstset{
+    basicstyle=\small\ttfamily
+}
 
 \begin{comment}
 
@@ -80,9 +95,9 @@
 
 \begin{abstract}
 
-Mini-applications (``miniapps'') are small-scale, representative versions of large-scale pieces of scientific or engineering-focused software that seek to model the performance of an algorithm or program without actually executing the larger program. This project seeks to examine the effects of altering the codebase of one such miniapp called ``SNAP'' from utilising only traditional processing cores to incorporating a mixture of traditional computation in addition to offloading applicable workloads to graphical processing cores, aiming to leverage their increased throughput and capabilities for single instruction, multiple data (SIMD) assignments. Ultimately the hope is to examine the performance of the resulting program to ascertain whether the modification is beneficial to the runtime of the algorithm, justifying if this change can be reflected in the larger-scale software SNAP represents.
+Mini-applications (``miniapps'') are small-scale, representative versions of large-scale pieces of scientific- or engineering-focused software that seek to model the performance of an algorithm or program without the associated overhead of executing the larger program. This project seeks to examine the effects of altering the codebase of one such miniapp called ``SNAP'' from utilising only traditional processing cores to incorporating a mixture of traditional computation and offloading applicable workloads to graphical processing cores with the aim to leverage their increased throughput and capabilities for single instruction, multiple data (SIMD) assignments. Ultimately the hope is to examine the performance of the resulting program to ascertain whether the modification is beneficial to the runtime of the algorithm, justifying if this change can be reflected in the larger-scale software SNAP represents.
 
-To this end, this dissertation details a brief description to the field of High-Performance Computing (``HPC''), along with an introduction and description of the new field of miniapps. Overall aims of the project are outlined before related work in the field of miniapps, application modelling, and related HPC disciplines and projects is presented The target miniapp SNAP is discussed in addition to outlining the objectives of what the project aims to achieve by modifying it. Current efforts and progress are detailed and reflected upon against the timeline offered in the project proposal previously submitted as part of this project/module. Finally, further work and a future timeline is described.
+To this end, this dissertation details a brief description to the field of High-Performance Computing (``HPC''), along with an introduction and description of the new field of miniapps. Overall aims of the project are outlined before related work in the field of miniapps, application modelling, and other HPC disciplines and projects are presented. This leads into an investigation into the existing SNAP codebase and architecture, a thoughtout and concise approach to and overall design to a potential solution to the problem in hand, with the process finalised by a documented explanation as to the actual implementation. To conclude the report, a testing strategy and results are discussed and analysed, with concluding remarks as to the efficacy and efficiency of the project ending the report.
 
 \end{abstract}
 
@@ -111,15 +126,17 @@ Since the era of Moore’s Law with respect to single-threaded/core workloads is
 \end{figure}
 
 % [Use of GPUs – GPU Architecture]
-Graphical Processing Units (GPU) are a newer technology than CPUs and serve a dedicated purpose of taking instructions from the CPU and performing multiple, hardware-based mathematical operations for translating three-dimensional shapes and coordinates into two-dimensional projections for rendering to a display, and runs multiple small programs called ``shaders” to handle colour and lighting. Due to the sheer amount of mathematical calculations that need to be performed to display something onto a display, GPUs are architected differently to a CPU. Modern graphics cards, such as NVIDIA’s Turing architecture, pictured in Figure \ref{fig:gpu_diagram}, are composed of multiple stream processors, each divided into hundreds of small cores which perform a single integer or floating-point operation. This stream processing approach allows for vast parallel computation over a large dataset in a paradigm called ``single instruction multiple data” (SIMD).
+Graphical Processing Units (GPU) are a newer technology than CPUs and serve a dedicated purpose of taking instructions from the CPU and performing multiple, hardware-based mathematical operations for translating three-dimensional shapes and coordinates into two-dimensional projections for rendering to a display, and runs multiple small programs called ``shaders” to handle colour and lighting. Due to the sheer amount of mathematical calculations that need to be performed to display something onto a display, GPUs are architected differently to a CPU. Modern graphics cards, such as Nvidia Turing architecture, pictured in Figure \ref{fig:gpu_diagram}, are composed of multiple stream processors, each divided into hundreds of small cores which perform a single integer or floating-point operation. This stream processing approach allows for vast parallel computation over a large dataset in a paradigm called ``single instruction multiple data” (SIMD).
 
-This parallelism was previously reserved for image and video processing but a few years ago NVIDIA released their CUDA API\cite{cuda_talk}\cite{CUDA} which allows developers to leverage the stream processing nature of the GPU for general-purpose computation. Scientific workloads from biomedical imaging\cite{luebke2008cuda} to deep learning\cite{tang2013deep} are now done on the GPU, and modern supercomputers, such as Summit, are built with large numbers of GPUs to accelerate workloads and perform previously-impossible simulations and workloads.
+% TODO: Develop this explanation further, how it works, etc.
+
+This parallelism was previously reserved for image and video processing but a few years ago Nvidia released their CUDA API\cite{cuda_talk}\cite{CUDA} which allows developers to leverage the stream processing nature of the GPU for general-purpose computation. Scientific workloads from biomedical imaging\cite{luebke2008cuda} to deep learning\cite{tang2013deep} are now done on the GPU, and modern supercomputers, such as Summit, are built with large numbers of GPUs to accelerate workloads and perform previously-impossible simulations and workloads.
 
 % \footnote{\url{https://devblogs.nvidia.com/nvidia-turing-architecture-in-depth/}}
 \begin{figure}
 \centering
 \includegraphics[width=0.45\textwidth]{images/gpu_diagram.jpg}
-\caption{NVIDIA Turing GPU Streaming Multiprocessor Architecture Diagram}
+\caption{Nvidia Turing GPU Streaming Multiprocessor Architecture Diagram}
 \label{fig:gpu_diagram}
 \end{figure}
 
@@ -152,7 +169,7 @@ A seminal work in the field of miniapps was written by Heroux et al\cite{miniapp
 
 General-purpose simulations on GPUs have been studied for a long time, with GPUs being a core part of modern computing clusters\cite{debardeleben2013gpu}. Strong-scaling across multiple GPUs\cite{glaser2015strong} is the ideal approach. Consideration is taken also for conversion of existing codebases\cite{zhou2011gpu} and new, bespoke solutions designed with GPU architecture utilisation in mind\cite{glaser2015strong}. Bespoke solutions offer superior code architecture and speed, meaning calculation of theoretical maximum performance increase for a pre-existing code base will have to take this into account.
 
-Writing GPU targeted miniapps in a developing area of work. Baker et al\cite{baker2012high} discuss implementation details of converting the KBA sweep algorithm of the Denovo code system to run on NVIDIA’s Titan GPU. Mallison et al\cite{mallinson2013cloverleaf} demonstrate too with CloverLeaf the performance advantages GPU-based architecture targeting can have over purely CPU-based versions. It is important to note that these performance increases might not necessarily be completely reflected in SNAP’s algorithm due to other considerations, such as the scaling characteristics of the algorithm\cite{shoukourian2014predicting} and communication technologies as highlighted by Glaser et al\cite{glaser2015strong}.
+Writing GPU targeted miniapps in a developing area of work. Baker et al\cite{baker2012high} discuss implementation details of converting the KBA sweep algorithm of the Denovo code system to run on Nvidia Titan GPU. Mallison et al\cite{mallinson2013cloverleaf} demonstrate too with CloverLeaf the performance advantages GPU-based architecture targeting can have over purely CPU-based versions. It is important to note that these performance increases might not necessarily be completely reflected in SNAP’s algorithm due to other considerations, such as the scaling characteristics of the algorithm\cite{shoukourian2014predicting} and communication technologies as highlighted by Glaser et al\cite{glaser2015strong}.
 
 Performance of miniapps with respect to CPU- and GPU-based parallelisation frameworks have been explored previously and show promising results which add credence to the motivation of this project. Notably Martineau et al\cite{martineau2017productivity} reached the conclusion that compiling miniapps to CUDA resulted in greater efficiencies compared to other targets, though care is needed to consider the implementation (especially with respect to data accesses) to avoid the compiler introducing performance penalties.
 
@@ -166,36 +183,55 @@ Several factors need to be considered when developing a software project. Manage
 
 \subsection{Time Constraints}
 
-Time constraints are always a pressing and important factor to consider when starting a large project. The external largest constraints imposed on this project would be the time required to complete several overlapping courseworks for various MSc modules, in addition to setting aside time to adequately prepare for and take the end of year exams in June and July. To manage these obstacles, the timeline presented in Figure \ref{fig:gantt_chart} was developed early on in the research phase of the project to delineate when and how long certain key stages of development were to last for, with built-in highlighting of potential speed-bumps to this project's progression.
+Time constraints are always a pressing and important factor to consider when starting a large project. The external largest constraints imposed on this project would be the time required to complete several overlapping courseworks for various MSc modules, in addition to setting aside time to adequately prepare for and take the end of year exams in June and July. To manage these obstacles, the timeline presented in Figure \ref{fig:gantt_chart} was developed early on in the research phase of the project to delineate when and how long certain key stages of development were to last for, with the potential speed-bumps to this project's progression (i.e. MSc examinations) highlighted and accounted for.
 
-\begin{figure*}[h!]
+\begin{figure*}[ht]
     % \begin{adjustbox}{max width=0.7\textwidth}
         \centering
         \ganttset{calendar week text=\small{\startday}}
         \begin{ganttchart}[
+            y unit chart=0.75cm,
             hgrid,x unit=0.1cm,
             hgrid style/.style={draw=black!5, line width=.75pt},
-            vgrid={draw=none,draw=none},
+            milestone/.style={fill=black, draw=white, rounded corners=4pt},
+            milestone label font={\it\scriptsize},
             bar label node/.style={text width=2cm,align=right,font=\scriptsize\RaggedLeft,anchor=east},
             group label node/.style={text width=2cm,align=right,font=\bf\scriptsize\RaggedLeft,anchor=east},
+            title label anchor/.style={below=-1.6ex},
             time slot format=little-endian]{01-05-2019}{26-09-2019}
         \gantttitlecalendar{month=shortname, week=4} \\
-        \ganttgroup{Total Duration}{01-07-2019}{12-09-19}\\
-        % Investigation and Design
-        \ganttgroup{Investigation and Design}{01-07-19}{31-07-19}\\
-        \ganttbar{Collating Stacktraces and Data}{01-07-19}{20-07-19}\\
-        \ganttbar{Mathematical Model}{01-07-19}{27-07-19}\\
-        \ganttbar{Finalise CUDA Education}{01-07-19}{31-07-19}\\
+        \ganttgroup{Project Duration}{01-05-2019}{26-09-19}\\
+        % Impediments
+        \ganttmilestone{Examinations}{13-05-19}
+        \ganttmilestone[inline=false]{}{30-05-19}
+        \ganttmilestone[inline=false]{}{31-05-19}
+        \ganttmilestone[inline=false]{}{01-06-19}
+        \ganttmilestone[inline=false]{}{05-06-19}
+        \ganttmilestone[inline=false]{}{08-06-19}\\
+        % Investigation
+        \ganttgroup{Investigation}{01-05-19}{24-06-19}
+        \ganttcontingency[]{}{25-06-19}{02-07-19}\\
+        \ganttbar{Preliminary Exploration}{01-05-19}{01-06-19}\\
+        \ganttbar{Codebase Examination}{03-05-19}{17-06-19}\\
+        \ganttbar{Learning CUDA}{10-06-19}{24-06-19}\\
+        % Design
+        \ganttgroup{Design}{05-06-19}{31-07-19}
+        \ganttcontingency[]{}{01-08-19}{08-08-19}\\
+        \ganttbar{Mathematical Model}{05-06-19}{15-07-19} \\
+        \ganttbar{Test Harness Concept}{01-07-19}{15-07-19}\\
+        \ganttbar{Ideation}{01-07-19}{31-07-19}\\
         % Design and implementation
-        \ganttgroup{Design and Implementation}{01-07-19}{30-08-19}\\
+        \ganttgroup{Implementation}{01-07-19}{18-08-19}
+        \ganttcontingency[]{}{19-08-19}{30-08-19}\\
         % Testing
-        \ganttgroup{Testing}{15-07-19}{14-08-19}\\
-        \ganttbar{Local Profiling and Benchmarking}{15-07-19}{14-08-19}\\
-        \ganttbar{Cluster Profiling and Benchmarking}{14-07-19}{14-08-19}\\
+        \ganttgroup{Testing}{15-07-19}{30-08-19}
+        \ganttcontingency[]{}{31-08-19}{07-09-19}\\
+        \ganttbar{Local Profiling and Benchmarking}{15-07-19}{19-08-19} \\
+        \ganttbar{Cluster Profiling and Benchmarking}{29-07-19}{30-08-19} \\
         % Dissertation
-        \ganttgroup{Dissertation}{26-08-19}{12-09-19}\\
-        \ganttbar{Writing}{26-08-19}{10-09-19}\\
-        \ganttbar{Proof Reading and Editing}{5-09-19}{12-09-19}
+        \ganttgroup{Dissertation}{12-08-19}{26-09-19} \\
+        \ganttbar{Writing}{12-08-19}{26-09-19} \\
+        \ganttbar{Proof Reading and Editing}{5-09-19}{26-09-19}
         \end{ganttchart}
     % \end{adjustbox}
     
@@ -203,30 +239,52 @@ Time constraints are always a pressing and important factor to consider when sta
     \label{fig:gantt_chart}
 \end{figure*}
 
+During an early presentation and review of the project, it was made clear that no contingency had been built into the timeline of the project that would alleviate pressure in the event of unfortuitous circumstances arriving - whether that be unavailability of resources, issues arising during testing, having to adjust the design, or the typical software development issue of features taking longer to develop than initially estimated. Hence, in Figure \ref{fig:gantt_chart}, contingency periods for overall stages of the project are blocked out in the striped areas shown to allow the project to stay on course and on-time.
+
 \subsection{Source Control}
 
-Github
+Every major modern software development project uses source control at its core. Source control is key to backing up software in an external repository, maintaining multiple versions of the same codebase in a linear or parallelised fashion to be able to restore the code to a former state or maintain a legacy version alongside a more modern version (for instance), and for branching code to allow many developers to work on potentially overlapping areas of the code at once.
 
+To this end, a decision was made to version control the code for the project using \texttt{git}. Other source control alternatives were considered but \texttt{git} has all of the features discussed in addition to being widely supported, an industry standard, and repository hosting services GitHub and GitLab being two of the most popular offerings available. GitHub offers free hosting for public repositories and is already where the original SNAP repository is hosted.
 
+With this in mind, LANL's SNAP repository was forked into a new repository located at \url{https://www.github.com/alshort/snap}. From here it will be cloned onto the local development machine and worked upon in a linear fashion, branching code were experimental code is to be created. Tags will be used to demark stable versions when they are created.
 
-\subsection{Hardware and Software Setup}
+\subsection{Hardware and Software}
 
-\subsubsection{Visual Studio Code}
+Intel's port of SNAP relies on very particular tooling and platform decisions so most of the decisions with regards to testing and development tooling were already determined ahead of time. Furthermore, the decision to utilise CUDA as a platform to accelerate the performance of the miniapp also additional hardware requirements in an Nvidia-based GPU and accompanying drivers and development suites. If the modifications to the codebase are successful, it is hoped to execute the software under both a local testing environment and a cluster computing environment at the University of Warwick's Department of Computer Science. Details of both of the setups follow.
+
+\subsubsection{Local Testing}
+
+It is sufficient enough to be able to compile, execute, and test both the stock SNAP application as well as a GPU-accelerated alteration on a typical home desktop computer as of time of writing, given some particular brand-alignments/proprietary technologies are in mind when the machine is purchased or built. As such, hardware specifications of the home desktop computer used as the local development environment are as follows:
+
 \begin{itemize}
-    \item Cross-platform
-    \item Automatable
-    \item Extensions
+    \item \textbf{Intel® Core™ i7-6700K CPU}: A single quad-core, consumer-grade, overclockable CPU produced by Intel as part of their 6th generation ``Skylake'' line of processors. It has a clock speed of 4GHz (overclockable) and comes as standard with hyperthreading enabled for an (apparent) core count of 8.
+    \item \textbf{Nvidia GeForce GTX 1070 graphics card}: Pascal architecture-based GPU that supports the CUDA Compute functionality. In terms of hardware specifications, it has a 1.5GHz base/core clock speed, 8GB of GDDR5 memory, and 15 streaming multi-processors for parallelism.
+    \item \textbf{16GB DDR4 RAM}.
+    \item \textbf{Samsung 860 EVO SSD}: Storage disk for the Ubuntu operating system the project with be developed and tested on - both the original SNAP porters and cluster environment use the platform and tools on it, so the choice was made mainly for feature-parity and consistency (see below).
 \end{itemize}
 
-\subsubsection{Hardware}
+This setup allows for the compilation and testing of the current implementation of SNAP as well as a CUDA-accelerated version by both having the correct hardware that the software is and will be built for, while also being flexible enough in order to test the programs under a range of different inputs and constraints (such as having anywhere from 1 to 8 threads to run the program on). Whilst newer generation Intel processors would be even more ideal, such as the Intel® Core™ i9-7960X 16-core processor, the current hardware more than suffices enough to yield a satisfactory picture of the performance characteristics of the MPI and OpenMP implementation and limitations for this application.
 
-For local testing
+\subsubsection{Cluster Testing}
+
+\dots
+
+\subsubsection{Software}
+
+Working with an existing and established codebase means adhering to existing toolchains where possible in order to correctly compile the software and to have an identical executing environment to run the program in to ensure the program behaves as intended. Thus, most software choices were predetermined for the project. Where nothing was chosen already, the rest of the choices were made due to personal preference, familiarity, or significant advantages were present that made them ideal for their role. All the options are listed below:
 
 \begin{itemize}
-    \item Intel® Core™ i7-6700K CPU, clock speed of 4GHz. It is a quad-core CPU with hyperthreading enabled for an apparent core count of 8.
-    \item NVIDIA GeForce GTX 1070 graphics card. Pascal architecture that supports the CUDA Compute functionality, 1.5Ghz base core clock, 8GB of GDDR5 memory, and 15 streaming multi-processors.
-    \item 16GB of DDR4 RAM
-    \end{itemize}
+    \item \textbf{Ubuntu}: An open-source flavour of Linux favoured by developers for its rich tooling, reliance on shells and terminals and the power they provide, and ability to work at multiple levels (high or low depending upon the circumstances).
+    \item \textbf{bash}: A ``shell'' that provides a command-line interface to execute programs and interact with a Linux-based operating system. Useful for simplicity and for automation purposes with shell scripts, calling make files to handle compilation etc.
+    \item \textbf{Visual Studio Code}: A cross-platform, automatable text editor with multiple extensions available. Used specifically in this project for its syntax highlighting capabilities for C, C++, Make, Bash, and \LaTeX, as well as executable tasks to automate routines with its built-in terminal, and the latex-workshop extension for dynamically building, parsing, and previewing \LaTeX documents. The tasks developed for this project can be found in the \texttt{.vscode/tasks.json} file located in the source code.
+    \item \textbf{mpiicc}: Proprietary compiler for compiling code that uses both the MPI parallelisation specifications and Intel-specific C- and C++-based code.
+    \item \textbf{make}: Shell-based program that follows a given set of recipes within a Makefile for compiling multiple dependent parts of source code. Intel provided one to build their SNAP port with their \texttt{mpiicc} compiler, and this will further be modified later to encorporate other files and tools.
+    \item \textbf{nvcc}: Proprietary compiler produced by Nvidia to compile C++ code that targets the CUDA Compute capabilities of their compatible graphics cards.
+    \item \textbf{pdflatex, bibtex}: Backend programs for Visual Studio Code and latex-workshop to use to built \LaTeX and accompanying bibliography files. Errors and output are parsed and displayed in Visual Studio Code's in-built terminal for an enhanced and compact workflow.
+\end{itemize}
+
+\dots
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -245,38 +303,220 @@ In the main repository, various presentations and documentation are provided tha
 
 \subsubsection{Compilation}
 
-Intel chose to target the C-based port of SNAP towards Intel-based CPUs, hence the decision, as outlined in section \ref{projectmgmt}, to use a machine to locally test the program with having an Intel Core i7-6700K. This decision was made due to the original port writers' knowledge of the benefits that the architecture and proprietary improvements could bring to a strictly MPI-based implementation of SNAP.
+Intel chose to target the C-based port of SNAP towards Intel-based CPUs, hence the decision, as outlined in section \ref{projectmgmt}, to use a machine to locally test the program having an Intel Core i7-6700K CPU. This decision was made due to the original port writers' knowledge of the benefits that the architecture and proprietary improvements could bring to a strictly MPI-based implementation of SNAP. One such proprietary optimisation is the \texttt{-xAVX} compiler flag that was introduced from the ``Sandy Bridge''-line of Intel CPUs onwards that introduced the option to include new instructions (and expanded old instructions) that allowed for operations - specfically fused multiply-accumulate (FMA) operations - for the execution of some SIMD workloads on floating-point data\cite{KanterIntel}. This operation is similar in principle and execution to the SIMD nature of data manipulation on a standard GPU but cannot compare to the speed or scale of that which is obtainable on streaming multi-processors.
 
-GNU make is used to compile all facets of the program, with the main compiler being \texttt{mpiicc}. Whilst \texttt{gcc} is typically used to compile regular, standard C and C++ code, \texttt{icc} is Intel's C++ compiler that was built in order to specifically optimise code to run on Intel-created architectures. This includes optimisations for how memory is specifically accessed, how thread-based parallelisation is handled with regards to the OpenMP specification, data layout improvements, and support for modern iterations of C++ language specifications\footnote{\url{https://software.intel.com/en-us/c-compilers}}. \texttt{mpiicc} is an HPC-specific message-passing library built for use with the \texttt{icc} program (in particular its C-based capabilities). This library implements the Message Passing Interface (MPI) specification version 3.1\cite{intel-mpi-ref} to allow for bi-directional inter-process communication, regardless of how those processes are mapped to the underlying hardware.
+GNU make is used to compile all facets of the program, with the main compiler being \texttt{mpiicc}. Whilst \texttt{gcc} is typically used to compile regular, standard C and C++ code, \texttt{icc} is Intel's C++ compiler that was built in order to specifically optimise code to run on Intel-created architectures. This includes optimisations for how memory is specifically accessed, how thread-based parallelisation is handled with regards to the OpenMP specification, data layout improvements, and support for modern iterations of C++ language specifications\footnote{\url{https://software.intel.com/en-us/c-compilers}}. \texttt{mpiicc} is an HPC-specific version of the \texttt{icc} compiler that utilises message-passing library built for use with the \texttt{icc} program (in particular its C-based capabilities). This library implements the Message Passing Interface (MPI) specification version 3.1\cite{intel-mpi-ref} to allow for bi-directional inter-process communication, regardless of how those processes are mapped to the underlying hardware.
 
-Whilst provided in an operation state, this provision is predicated on the correct resources and dependencies being installed and linked up on the executing system. Installation of Intel's MPI libraries is straight-forward but ensuring that they will operate correctly when called is an issue. This
+Whilst provided in an operational state, this provision is predicated on the correct resources and dependencies being installed and linked up on the host system. Installation of Intel's MPI libraries is straight-forward but ensuring that they will operate correctly when called can be an issue.
+
+One of the foremost scripts devised when the project started was a bash script that ran several commands in order to register locations and assocaitions of binary files that are a core part of Intel's MPI libraries with the host shell (standard bash in this instance) so that the environment could call upon these when needed by either the compiler or the runtime code. Figure \ref{source_list} shows this script of ``source'' commands. The execution of this script was appended to the environment's \texttt{.bashrc} file in order for it to get executed before each bash shell has finished initialisation, allowing for the references to be available all to time to accelerate testing and development.
+
+
+
+\subsubsection{Understanding the Input Data}
+
+Input data in particular format
+
+\begin{figure}
+    \centering
+    \begin{tabular}{| p{1.7cm} | p{5.7cm} |}
+        \hline
+        Variable & Use \\
+        \hline
+        \texttt{nthreads} & Number of threads per process. \\
+        \texttt{npey} & Number of parallel processing inputs in the y direction. \\
+        \texttt{npez} & Number of parallel processing inputs in the z direction. \\
+        \texttt{ndimen} & Total number of dimensions to the grid. \\
+        \hline
+    \end{tabular}
+    \caption{Important variables defined in the input data}
+    \label{table:input-data}
+\end{figure}
+
+\begin{figure*}
+    \centering
+    \begin{lstlisting}[language=bash]
+#!/bin/sh
+. ~/intel/bin/compilervars.sh -arch intel64 -platform linux
+. ~/intel/mkl/bin/mklvars.sh intel64
+. ~/intel/bin/iccvars.sh -arch intel64 -platform linux
+. ~/intel/compilers_and_libraries/linux/mpi/intel64/bin/mpivars.sh 
+    \end{lstlisting}
+    \caption{intel.sh}
+    \label{source_list}
+\end{figure*}
 
 \subsubsection{Execution}
-
 % different threads, input data, averaging
 
-\subsection{gprof}
+Following successful compilation of the SNAP executable, several executions were performed under various environmental-constraints and input data to ascertain the current limitations and performance of the codebase as it stands.
 
+Due to its reliance on MPI for its processing, the compiled program is executed via Intel's \texttt{mpirun} program at the command line with an argument specifying the size of the MPI communication channel (or overall number of parallelised processes), the \texttt{-np} command-line argument, to divide the work into, as opposed to calling the executable by itself. An example execution is as follows:
+
+\begin{lstlisting}[breaklines]
+mpirun -np 4 src/snap_mkl_vml --fi qasnap/center_src/in01 --fo test.out
+\end{lstlisting}
+
+Figure \ref{fig:snap-successful-run} demonstrates the output of a successful execution of a given input.
+
+\begin{figure*}
+    \centering
+    \begin{lstlisting}[breaklines]
+andy@pc:~/uni/snap/src$ mpirun -np 4 ./snap_cpu --fi ../qasnap/center_src/in01 --fo test.out
+*WARNING: PINIT_OMP: NTHREADS>MAX_THREADS; reset to MAX_THREADS
+
+Success! Done in a SNAP!
+    \end{lstlisting}
+    \caption{A successful execution of the compiled snap\_mkl\_vml binary}
+    \label{fig:snap-successful-run}
+\end{figure*}
+
+It was identified early on into the testing - whilst undocumented, it could be said to be a core feature of the MPI specification itself - that defining an \texttt{-np} value that is not a whole multiple of the product of the defined grid geometry from the input data (\texttt{npey} * \texttt{npez}) then the runtime configuration cannot work out how to divide up the workload into whole, viable chunks to send to all processes. Figure \ref{fig:snap-unsuccessful-run} shows the error message provided in this scenario.
+
+\begin{figure*}
+    \centering
+    \begin{lstlisting}[breaklines]
+andy@pc:~/uni/snap/src$ mpirun -np 1 ./snap_cpu --fi ../qasnap/center_src/in01 --fo test.out
+Abort(202454796) on node 0 (rank 0 in comm 0): Fatal error in PMPI_Cart_create: Invalid argument, error stack:
+PMPI_Cart_create(325).....: MPI_Cart_create(comm=0x84000002, ndims=2, dims=0x7ffd07f649b0, periods=0x7ffd07f649b8, reorder=1, comm_cart=0x7ffd07f64bac) failed
+MPIR_Cart_create_impl(194): 
+MPIR_Cart_create(58)......: Size of the communicator (1) is smaller than the size of the Cartesian topology (4)
+    \end{lstlisting}
+    \caption{An unsuccessful execution of the snap\_mkl\_vml binary due to imposed multi-processing limitations}
+    \label{fig:snap-unsuccessful-run}
+\end{figure*}
+
+
+\subsection{gprof}
 % Print out of "example" analysis
 
-\subsection{Learning CUDA}
+Without knowing sight-on-scene which aspects of the codebase are called from which parent subroutine, for whatever piece of input or interim data, and what time, it's necessary to perform time-centric analysis to gauge how much time is being spent in which particular subroutines as these are the main bottlenecks when it comes to the performance of an algorithm.
 
-% ...
+
+
+\begin{figure}[h]
+    \centering
+    \begin{tabular}{ | c | c | c | c | }
+\hline
+\% Time & Cumulative Secs & Calls & Name \\
+\hline
+66.67 & 0.02 & 14976 & dim3\_sweep \\
+33.33 & 0.02 & 14976 & sweep \\
+0.00  & 0.03 & 29952 & precv\_d\_3d \\
+0.00  & 0.03 & 29952 & psend\_d\_3d \\
+0.00  & 0.03 & 14976 & octsweep \\
+\hline
+    \end{tabular}
+    \caption{Amalgamated gprof log (truncated to top 5 rows)}
+    \label{table:gprof_log}
+\end{figure}
+
+
+\subsubsection{Code Analysis}
+
+\subsection{Learning CUDA}
 % "CUDA by Example" book
+
+Being the only way to usefully execute general-purpose code on a(n Nvidia) GPU, it is important to comprehensively understand CUDA before delving into making any modification to the source code of this project.
+
+
+
+\begin{itemize}
+    \item Architecture
+    \item Kernel code
+    \item Shared memory, thread cooperation etc
+\end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Design}
+\section{Design}\label{design}
 
-\begin{itemize}
-    \item Mathematical model of ideal circumstances
-    \item Code analysis
-    \item 
-\end{itemize}
 
 \subsection{Mathematical Model}
 
-% ...
+In order to get a gist of the amount of reasonable work the GPU could handle at once and estimates for the amount of time and data movement needed for the optimal implementation, a mathematical model was developed to help visualise and describe the interactions between adjacent cells in the approximated algorithm that SNAP uses. The following assumptions were made when developing this model:
+
+\begin{enumerate}
+
+\item The algorithm defines the problem space as a three-dimensionality discretized grid of cells, each with their own values and interactions with their neighbouring adjacent cells – this forms the core of the SNAP algorithm (it itself approximating a continuous algorithm).
+
+\item The problem space is cubic with side $ n $ for ease of modelling. A generalisation to a cuboidal space with dimensions $ (x, y, z) $ can be abstracted from the cubic model later.
+
+\end{enumerate}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.45\textwidth]{images/Sweep.jpg}
+\caption{Slices of a sweep of 3D grid}
+\label{fig:3dsweepslice}
+\end{figure}
+
+Given these assumptions, we aim to derive the total number of communications between cells in the grid per iteration and how much work this equates to and how much can be parallelised at each stage.
+
+There are $ 8 $ vertices of a cube so $ 8 $ octants to perform the sweep over. Each sweep is divided up into diagonal slices, shown in Figure \ref{fig:3dsweepslice}, of which there are $ (x + y + z) - 1 $ of them ($ 3n - 1 $ in this model). A key point to note is the dependency in each sweep of a slice on the slice before as the direction of the sweep is linear and calculations rely upon previous ones\footnote{As described in the documentation of the SNAP algorithm in their GitHub repository - \url{ https://github.com/lanl/SNAP/blob/master/docs/SNAP-overview-presentation-2015.pdf}}, and each combined sweep of all octants, after all results being collated, forms the basis of the next sweep.
+
+The first $ n $ slices of the grid are comprised of the sum of the first $ n $ triangular numbers’ (i.e. $ 1, 3, 6, 10, 15\dots $)\footnote{Sequence A000217 in the ``On-line Encyclopedia of Integer Sequences'' (\url{https://oeis.org/A000217})}, worth of cells, with the final $ n $ slices having the same number also (just in reverse order). $ n - 2 $ slices exist between the 2 triangular-based pyramids formed from the previous step, allowing us to develop a function for the first $ m = n + \frac{n - 2}{2} $ slices, and mirror it to get the number of cells in any slice of the grid.
+
+The number of cells in slice $ i $ of a cube of size $ n $ is thus given by the following formula:
+
+\begin{equation}
+cells(i) = \left\{
+	\begin{array}{ll}
+		tri(i) & \mbox{if } i \le n \\
+		tri(i) - 3tri(i - n) & \mbox{if } i \le m \\
+		cells(m - ((i - 1)\bmod m)) & \mbox{otherwise}
+	\end{array}
+\right.
+\end{equation}
+
+Where $ tri(i) $ represents the $i$th triangular number, $ 1 \le i \le 3n - 1 $. 
+
+This means poor performance early on due to low numbers of cells per layer and the inter-slice dependency, but will ultimately scale well and to more graphics card given a large grid.
+
+To work out data transfer, we need to figure out the amount of sends and receive actions are performed per slice. We can again work first out up to the first $ m $ slices, and take the mirror image for the rest of the slices, swapping the number of sends per slice for the receives of the mirror slice and vice versa. For the first $ n - 1 $ slices, each cell sends to 3 neighbouring adjacent cells in the next slice. When $ i \ge n $, we need to take into account the ``cut-off'' portions where some cells only send to 2 neighbours, hence:
+
+\begin{equation}
+sends(i) = \left\{
+	\begin{array}{ll}
+		tri(i) * 3 & \mbox{if } i < n \\
+		(i\bmod(n - 1)) * 2 + \\
+			(cells(i) - i\bmod(n - 1)) * 3 & \mbox{if } i \le m \\
+		recvs(2n - i) & \mbox{otherwise}
+	\end{array}
+\right.
+\end{equation}
+
+The total number of receive actions is similar. The first cell has no neighbours to receive from, the second slice has only 1, the rest have three, then after the $n$th slice we need to consider where we only receive from 2 neighbours:
+
+\begin{equation}
+recvs(i) = \left\{
+	\begin{array}{ll}
+		0 & \mbox{if } i = 1 \\
+		tri(i) & \mbox{if } i = 2 \\
+		tri(i) * 3 & \mbox{if } i \le n \\
+		(cells(i) - (2n - i)) * 3 & \mbox{if } i \le m \\
+		sends(2n - i) \mbox{otherwise}
+	\end{array}
+\right.
+\end{equation}
+
+Both functions are defined in the domain $ 1 \le i \le 3n - 1 $.
+
+If we let $ msg_s $ be the size of a message to send and $ msg_r $ the size of a message to receive from a neighbour (both in number of bytes), and knowing that the fastest data transfer rate of the PCI Express (PCIe) 2.0 bus connecting the graphics card and CPU together is 500MB/s\cite{PCIe}, we can calculate the time per slice to store data from the GPU as
+
+\begin{equation}
+time_s = \frac{sends(i) * msg_s}{5 \times 10^8}
+\end{equation}
+
+and to send data to it as
+
+\begin{equation}
+time_r = \frac{recvs(i) * msg_r}{5 \times 10^8}
+\end{equation}
+
+Aggregating these over all slices, alongside an assumed small, constant kernel function calculation time $ C $ over $ cells(i) $ cells in the slices, yields the best-case calculation time for the current approach. From here, we can interleave all 8 octants for calculation at once (of course managing the number of streaming multi-processors, which, after a point, we'd need to vastly scale hardware or queue work) to improve our throughput. $C$ ultimately depends on the type of graphics card being used.
+
+\subsection{Ideation}
 
 \subsection{Test Harness}
 
@@ -285,9 +525,22 @@ Whilst provided in an operation state, this provision is predicated on the corre
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\section{Implementation}\label{implementation}
 
-\section{Implementation}
+\subsection{Prerequisites}
+\begin{itemize}
+    \item Nvidia drivers
+    \item CUDA libraries
+\end{itemize}
 
+\subsection{Test Harness}
+\begin{itemize}
+    \item Python
+    \item OS-calls and handling
+    \item 
+\end{itemize}
+
+\subsection{Modified SNAP Application}
 \begin{itemize}
     \item Intel C MPI library
     \item Externalised CUDA algorithms
@@ -296,21 +549,27 @@ Whilst provided in an operation state, this provision is predicated on the corre
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Testing}
+\section{Testing}\label{testing}
 
 \begin{itemize}
     \item Test Plan
+    \item Test Harness Application
     \item Local Testing
 \end{itemize}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Conclusion}
+\section{Conclusion}\label{conclusion}
 
 \subsection{Limitations}
 
 \subsection{Improvements}
+
+\begin{itemize}
+    \item Docker container for a consistent operating environment
+    \item Modernise the input data into a new format (e.g. JSON)
+\end{itemize}
 
 \subsection{Further Work}
 
