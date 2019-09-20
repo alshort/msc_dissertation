@@ -2,7 +2,7 @@
 
 \usepackage{adjustbox}
 \usepackage{amsmath}
-\usepackage{caption}
+% \usepackage{caption}
 \usepackage[nocompress]{cite}
 \usepackage{geometry}
 \usepackage{graphicx}
@@ -27,59 +27,6 @@
     basicstyle=\small\ttfamily
 }
 
-\begin{comment}
-
-# Submission (26th Sept): pdf - Tabula
-	<30MB
-	Bundle code as ZIP in electronic submission
-
->18000, 20000 words
-
-# Assessment Criteria
-* Technical content
-    * Well read and knowledgeable in the project's subject area
-    * Good insight into the project's specific topic
-    * Effective analysis of the problems and issues relating to the project's aims
-    * Quality of design work and appropriate choice of methods and tools
-    * Effective testing/validation regime
-    * Quality of results and analysis
-    * Critical evaluation of the project
-    * Quality of practical/technical work and overall level of technical achievement.
-* Project management and organization
-    * Good consistent progress
-    * Initially unforeseen problems well detected and overcome
-    * Necessary research, analysis and design work completed
-    * Completeness of project overall.
-* Communication skills
-    * Clear exposition of the aims, achievements and limitations of the project
-    * Coherence, structure and composition of report
-    * Software and hardware appropriate documented
-    * Readability and appropriate length.
-
-\end{comment}
-
-\begin{comment}
-    * Abstract
-    * Introduction
-        * Background
-        * Related Work
-    * Project Management
-        * Gantt Chart
-        * Git repo
-        * Latex
-    * Investigation
-        * gprof
-    * Design
-    * Implementation
-    * Testing
-    * Conclusion
-        * Limitations
-        * Improvements
-        * Future Work
-    * References
-\end{comment}
-
-
 \begin{document}
 \newgeometry{vmargin=2.25cm, hmargin=2.25cm}
 \title{Integrating CUDA into SNAP}
@@ -95,15 +42,16 @@
 
 \begin{abstract}
 
-Mini-applications (``miniapps'') are small-scale, representative versions of large-scale pieces of scientific- or engineering-focused software that seek to model the performance of an algorithm or program without the associated overhead of executing the larger program. This project seeks to examine the effects of altering the codebase of one such miniapp called ``SNAP'' from utilising only traditional processing cores to incorporating a mixture of traditional computation and offloading applicable workloads to graphical processing cores with the aim to leverage their increased throughput and capabilities for single instruction, multiple data (SIMD) assignments. Ultimately the hope is to examine the performance of the resulting program to ascertain whether the modification is beneficial to the runtime of the algorithm, justifying if this change can be reflected in the larger-scale software SNAP represents.
+Mini-applications (``miniapps'') are small-scale, representative versions of large-scale pieces of scientific- or engineering-focused software that seek to model the performance of an algorithm or program without the associated overhead of executing the larger program. This project seeks to examine the effects of altering the code base of one such miniapp called ``SNAP'' from utilising only traditional processing cores to incorporating a mixture of traditional computation and offloading applicable workloads to graphical processing cores with the aim to leverage their increased throughput and capabilities for single instruction, multiple data (SIMD) assignments. Ultimately the hope is to examine the performance of the resulting program to ascertain whether the modification is beneficial to the runtime of the algorithm, justifying if this change can be reflected in the larger-scale software SNAP represents.
 
-To this end, this dissertation details a brief description to the field of High-Performance Computing (``HPC''), along with an introduction and description of the new field of miniapps. Overall aims of the project are outlined before related work in the field of miniapps, application modelling, and other HPC disciplines and projects are presented. This leads into an investigation into the existing SNAP codebase and architecture, a thoughtout and concise approach to and overall design to a potential solution to the problem in hand, with the process finalised by a documented explanation as to the actual implementation. To conclude the report, a testing strategy and results are discussed and analysed, with concluding remarks as to the efficacy and efficiency of the project ending the report.
+To this end, this dissertation details a brief description to the field of High-Performance Computing (``HPC''), along with an introduction and description of the new field of miniapps. Overall aims of the project are outlined before related work in the field of miniapps, application modelling, and other HPC disciplines and projects are presented. This leads into an investigation into the existing SNAP code base and architecture, a thought out and concise approach to and overall design to a potential solution to the problem in hand, with the process finalised by a documented explanation as to the actual implementation. To conclude the report, a testing strategy and results are discussed and analysed, with concluding remarks as to the efficacy and efficiency of the project ending the report.
 
 \end{abstract}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Introduction}\label{introduction}
+\section{Introduction}
+\label{sec:introduction}
 
 \subsection{Background}
 
@@ -126,7 +74,7 @@ Since the era of Moore’s Law with respect to single-threaded/core workloads is
 \end{figure}
 
 % [Use of GPUs – GPU Architecture]
-Graphical Processing Units (GPU) are a newer technology than CPUs and serve a dedicated purpose of taking instructions from the CPU and performing multiple, hardware-based mathematical operations for translating three-dimensional shapes and coordinates into two-dimensional projections for rendering to a display, and runs multiple small programs called ``shaders” to handle colour and lighting. Due to the sheer amount of mathematical calculations that need to be performed to display something onto a display, GPUs are architected differently to a CPU. Modern graphics cards, such as Nvidia Turing architecture, pictured in Figure \ref{fig:gpu_diagram}, are composed of multiple stream processors, each divided into hundreds of small cores which perform a single integer or floating-point operation. This stream processing approach allows for vast parallel computation over a large dataset in a paradigm called ``single instruction multiple data” (SIMD).
+Graphical Processing Units (GPU) are a newer technology than CPUs and serve a dedicated purpose of taking instructions from the CPU and performing multiple, hardware-based mathematical operations for translating three-dimensional shapes and coordinates into two-dimensional projections for rendering to a display, and runs multiple small programs called ``shaders” to handle colour and lighting. Due to the sheer amount of mathematical calculations that need to be performed to display something onto a display, GPUs have different architecture to that of a CPU. Modern graphics cards, such as Nvidia Turing architecture, pictured in Figure \ref{fig:gpu_diagram}, are composed of multiple stream processors, each divided into hundreds of small cores which perform a single integer or floating-point operation. This stream processing approach allows for vast parallel computation over a large dataset in a paradigm called ``single instruction multiple data” (SIMD).
 
 % TODO: Develop this explanation further, how it works, etc.
 
@@ -141,15 +89,15 @@ This parallelism was previously reserved for image and video processing but a fe
 \end{figure}
 
 % Miniapps
-Mini-applications (``miniapp”) are a new area within the field of High Performance Computing (HPC). These applications are small, self-contained proxies for real applications (typically relating to simulation of physical phenomena) to quickly and concisely explore a parameter space, leading to focused and interesting performance results to investigate potential scaling and run-time issues or trade-offs\cite{miniapps}. Miniapps capture the behaviour and essence of their parent applications primarily because of two characteristics of many applications running on distributed systems: the performance of an application will mainly be constituted by the performance of a small subset of the code, and many of the physical models that constitute the rest of the application are mathematically distinct and generally have similar performance characteristics\cite{miniapps}.
+Mini-applications (``mini-app”) are a new area within the field of High Performance Computing (HPC). These applications are small, self-contained proxies for real applications (typically relating to simulation of physical phenomena) to quickly and concisely explore a parameter space, leading to focused and interesting performance results to investigate potential scaling and run-time issues or trade-offs\cite{miniapps}. Mini-apps capture the behaviour and essence of their parent applications primarily because of two characteristics of many applications running on distributed systems: the performance of an application will mainly be constituted by the performance of a small subset of the code, and many of the physical models that constitute the rest of the application are mathematically distinct and generally have similar performance characteristics\cite{miniapps}.
 
 \subsection{Objectives}
 
-The SN (Discrete Ordinates) Application Proxy (SNAP) is a miniapp that acts as a proxy for discrete ordinates particle transport. It is modelled off another production simulation program developed by the Los Alamos National Laboratory (``LANL'') called PARTISN, which solves the linear Boltzmann transport equation (TE)\footnote{Boltzmann Equation: \url{https://en.wikipedia.org/wiki/Boltzmann_equation}\raggedright}, simulating neutron criticality and time-independent neutron leakage problems\cite{partisn} in a multi-dimensional phase space. SNAP is a proxy to PARTISN because it provides a concise solution to a discretised, approximated version (though with no real-world relevance) of the same problem PARTISN solves, providing the same data layout, the same number of operations, and loads elements into arrays in approximately the same order.
+The SN (Discrete Ordinates) Application Proxy (SNAP) is a mini-app that acts as a proxy for discrete ordinates particle transport. It is modelled off another production simulation program developed by the Los Alamos National Laboratory (``LANL'') called PARTISN, which solves the linear Boltzmann transport equation (TE)\footnote{Boltzmann Equation: \url{https://en.wikipedia.org/wiki/Boltzmann_equation}\raggedright}, simulating neutron criticality and time-independent neutron leakage problems\cite{partisn} in a multi-dimensional phase space. SNAP is a proxy to PARTISN because it provides a concise solution to a discretised, approximated version (though with no real-world relevance) of the same problem PARTISN solves, providing the same data layout, the same number of operations, and loads elements into arrays in approximately the same order.
 
 The SNAP algorithm works by defining the phase space as seven dimensions: three in space (x, y, z), two in angle (octants, angles), one in energy (groups, or energy-based bins of particles), and one of time (time step). SNAP sweeps across the spatial mesh, starting in each of the octants proceeding towards the antipodal octant, performing a time-dependent calculation in each cell using information from the previous time-step and surrounding cells. This motion forms a wave-front motion that sweeps across the three-dimensional space from corner to corner, with work being divided along each diagonal for parallel execution
 
-With this miniapp in mind, we define three key objectives that the project shall solve. Taken together, these will provide a holistic overview as to the validity and efficacy of this approach of converting CPU-bound parallelised algorithms to utilise the GPU instead (where appropriate). With the SNAP algorithm and open-source repository (specifically the C-based port of the code) in mind, the three objectives are:
+With this mini-app in mind, we define three key objectives that the project shall solve. Taken together, these will provide a holistic overview as to the validity and efficacy of this approach of converting CPU-bound parallelised algorithms to utilise the GPU instead (where appropriate). With the SNAP algorithm and open-source repository (specifically the C-based port of the code) in mind, the three objectives are:
 
 \begin{itemize}
 
@@ -165,25 +113,26 @@ With this miniapp in mind, we define three key objectives that the project shall
 
 \subsection{Related Work}
 
-A seminal work in the field of miniapps was written by Heroux et al\cite{miniapps}, defining the paradigm. Their Mantevo miniapp suite has show successful development of miniapps, such as MiniFE for finite element analysis and MiniMD for molecular dynamics simulations, to demonstrate their versatility and applicability. Others have demonstrated such success in other areas, such as Mallinson et al with ``CloverLeaf”\cite{mallinson2013cloverleaf}, and Los Alamos National Lab (\url{https://www.lanl.gov/projects/codesign/proxy-apps/lanl/index.php}). Miniapps have been shown to produce similar performance characteristics to their fully-fledged counterparts\cite{miniapps}, adding to the efficacy of the paradigm.
+A seminal work in the field of mini-apps was written by Heroux et al\cite{miniapps}, defining the paradigm. Their Mantevo mini-app suite has show successful development of mini-apps, such as MiniFE for finite element analysis and MiniMD for molecular dynamics simulations, to demonstrate their versatility and applicability. Others have demonstrated such success in other areas, such as Mallinson et al with ``CloverLeaf”\cite{mallinson2013cloverleaf}, and Los Alamos National Lab (\url{https://www.lanl.gov/projects/codesign/proxy-apps/lanl/index.php}). Mini-apps have been shown to produce similar performance characteristics to their fully-fledged counterparts\cite{miniapps}, adding to the efficacy of the paradigm.
 
-General-purpose simulations on GPUs have been studied for a long time, with GPUs being a core part of modern computing clusters\cite{debardeleben2013gpu}. Strong-scaling across multiple GPUs\cite{glaser2015strong} is the ideal approach. Consideration is taken also for conversion of existing codebases\cite{zhou2011gpu} and new, bespoke solutions designed with GPU architecture utilisation in mind\cite{glaser2015strong}. Bespoke solutions offer superior code architecture and speed, meaning calculation of theoretical maximum performance increase for a pre-existing code base will have to take this into account.
+General-purpose simulations on GPUs have been studied for a long time, with GPUs being a core part of modern computing clusters\cite{debardeleben2013gpu}. Strong-scaling across multiple GPUs\cite{glaser2015strong} is the ideal approach. Consideration is taken also for conversion of existing code bases\cite{zhou2011gpu} and new, bespoke solutions designed with GPU architecture utilisation in mind\cite{glaser2015strong}. Bespoke solutions offer superior code architecture and speed, meaning calculation of theoretical maximum performance increase for a pre-existing code base will have to take this into account.
 
-Writing GPU targeted miniapps in a developing area of work. Baker et al\cite{baker2012high} discuss implementation details of converting the KBA sweep algorithm of the Denovo code system to run on Nvidia Titan GPU. Mallison et al\cite{mallinson2013cloverleaf} demonstrate too with CloverLeaf the performance advantages GPU-based architecture targeting can have over purely CPU-based versions. It is important to note that these performance increases might not necessarily be completely reflected in SNAP’s algorithm due to other considerations, such as the scaling characteristics of the algorithm\cite{shoukourian2014predicting} and communication technologies as highlighted by Glaser et al\cite{glaser2015strong}.
+Writing GPU targeted mini-apps in a developing area of work. Baker et al\cite{baker2012high} discuss implementation details of converting the KBA sweep algorithm of the Denovo code system to run on Nvidia Titan GPU. Mallinson et al\cite{mallinson2013cloverleaf} demonstrate too with CloverLeaf the performance advantages GPU-based architecture targeting can have over purely CPU-based versions. It is important to note that these performance increases might not necessarily be completely reflected in SNAP’s algorithm due to other considerations, such as the scaling characteristics of the algorithm\cite{shoukourian2014predicting} and communication technologies as highlighted by Glaser et al\cite{glaser2015strong}.
 
-Performance of miniapps with respect to CPU- and GPU-based parallelisation frameworks have been explored previously and show promising results which add credence to the motivation of this project. Notably Martineau et al\cite{martineau2017productivity} reached the conclusion that compiling miniapps to CUDA resulted in greater efficiencies compared to other targets, though care is needed to consider the implementation (especially with respect to data accesses) to avoid the compiler introducing performance penalties.
+Performance of mini-apps with respect to CPU- and GPU-based parallelisation frameworks have been explored previously and show promising results which add credence to the motivation of this project. Notably Martineau et al\cite{martineau2017productivity} reached the conclusion that compiling mini-apps to CUDA resulted in greater efficiencies compared to other targets, though care is needed to consider the implementation (especially with respect to data accesses) to avoid the compiler introducing performance penalties.
 
-Development of the solution must still mimic the behaviour of the original application however, so care must be taken to preserve this. Heroux et al\cite{miniapps} and Messer et al\cite{messer2015developing} outline the fundamental principles that a miniapp must adhere to and the considerations of forming a miniapp from the base application – all of which would help form testing criteria for this project and future projects to help preserve results and intrinsic behaviour.
+Development of the solution must still mimic the behaviour of the original application however, so care must be taken to preserve this. Heroux et al\cite{miniapps} and Messer et al\cite{messer2015developing} outline the fundamental principles that a mini-app must adhere to and the considerations of forming a mini-app from the base application – all of which would help form testing criteria for this project and future projects to help preserve results and intrinsic behaviour.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Project Management}\label{projectmgmt}
+\section{Project Management}
+\label{sec:projectmgmt}
 
 Several factors need to be considered when developing a software project. Management of time constraints is discussed first as producing a novel software project as part of an entire Masters course will run into difficulty - mostly with conflicting or overlapping deadlines but also due to the inevitable problems associated with any software development project. Following on from this, it is also key to highlight how the code was managed and versioned so as to preserve the history of changes and the progression of the project, should ideas need to be experimented with or code recovered should anything unforeseen occur.
 
 \subsection{Time Constraints}
 
-Time constraints are always a pressing and important factor to consider when starting a large project. The external largest constraints imposed on this project would be the time required to complete several overlapping courseworks for various MSc modules, in addition to setting aside time to adequately prepare for and take the end of year exams in June and July. To manage these obstacles, the timeline presented in Figure \ref{fig:gantt_chart} was developed early on in the research phase of the project to delineate when and how long certain key stages of development were to last for, with the potential speed-bumps to this project's progression (i.e. MSc examinations) highlighted and accounted for.
+Time constraints are always a pressing and important factor to consider when starting a large project. The external largest constraints imposed on this project would be the time required to complete several overlapping coursework assignments for various MSc modules, in addition to setting aside time to adequately prepare for and take the end of year exams in June and July. To manage these obstacles, the timeline presented in Figure \ref{fig:gantt_chart} was developed early on in the research phase of the project to delineate when and how long certain key stages of development were to last for, with the potential speed-bumps to this project's progression (i.e. MSc examinations) highlighted and accounted for.
 
 \begin{figure*}[ht]
     % \begin{adjustbox}{max width=0.7\textwidth}
@@ -239,32 +188,34 @@ Time constraints are always a pressing and important factor to consider when sta
     \label{fig:gantt_chart}
 \end{figure*}
 
-During an early presentation and review of the project, it was made clear that no contingency had been built into the timeline of the project that would alleviate pressure in the event of unfortuitous circumstances arriving - whether that be unavailability of resources, issues arising during testing, having to adjust the design, or the typical software development issue of features taking longer to develop than initially estimated. Hence, in Figure \ref{fig:gantt_chart}, contingency periods for overall stages of the project are blocked out in the striped areas shown to allow the project to stay on course and on-time.
+During an early presentation and review of the project, it was made clear that no contingency had been built into the timeline of the project that would alleviate pressure in the event of unfortunate circumstances arriving - whether that be unavailability of resources, issues arising during testing, having to adjust the design, or the typical software development issue of features taking longer to develop than initially estimated. Hence, in Figure \ref{fig:gantt_chart}, contingency periods for overall stages of the project are blocked out in the striped areas shown to allow the project to stay on course and on-time.
 
 \subsection{Source Control}
 
-Every major modern software development project uses source control at its core. Source control is key to backing up software in an external repository, maintaining multiple versions of the same codebase in a linear or parallelised fashion to be able to restore the code to a former state or maintain a legacy version alongside a more modern version (for instance), and for branching code to allow many developers to work on potentially overlapping areas of the code at once.
+Every major modern software development project uses source control at its core. Source control is key to backing up software in an external repository, maintaining multiple versions of the same code base in a linear or parallelised fashion to be able to restore the code to a former state or maintain a legacy version alongside a more modern version (for instance), and for branching code to allow many developers to work on potentially overlapping areas of the code at once.
 
 To this end, a decision was made to version control the code for the project using \texttt{git}. Other source control alternatives were considered but \texttt{git} has all of the features discussed in addition to being widely supported, an industry standard, and repository hosting services GitHub and GitLab being two of the most popular offerings available. GitHub offers free hosting for public repositories and is already where the original SNAP repository is hosted.
 
-With this in mind, LANL's SNAP repository was forked into a new repository located at \url{https://www.github.com/alshort/snap}. From here it will be cloned onto the local development machine and worked upon in a linear fashion, branching code were experimental code is to be created. Tags will be used to demark stable versions when they are created.
+With this in mind, LANL's SNAP repository was forked into a new repository located at \url{https://www.github.com/alshort/snap}. From here it will be cloned onto the local development machine and worked upon in a linear fashion, branching code were experimental code is to be created. Tags will be used to denote stable versions when they are created.
+
+% TODO: Methodology
 
 \subsection{Hardware and Software}
 
-Intel's port of SNAP relies on very particular tooling and platform decisions so most of the decisions with regards to testing and development tooling were already determined ahead of time. Furthermore, the decision to utilise CUDA as a platform to accelerate the performance of the miniapp also additional hardware requirements in an Nvidia-based GPU and accompanying drivers and development suites. If the modifications to the codebase are successful, it is hoped to execute the software under both a local testing environment and a cluster computing environment at the University of Warwick's Department of Computer Science. Details of both of the setups follow.
+Intel's port of SNAP relies on very particular tooling and platform decisions so most of the decisions with regards to testing and development tooling were already determined ahead of time. Furthermore, the decision to utilise CUDA as a platform to accelerate the performance of the mini-app also additional hardware requirements in an Nvidia-based GPU and accompanying drivers and development suites. If the modifications to the code base are successful, it is hoped to execute the software under both a local testing environment and a cluster computing environment at the University of Warwick's Department of Computer Science. Details of both of the set-ups follow.
 
 \subsubsection{Local Testing}
 
 It is sufficient enough to be able to compile, execute, and test both the stock SNAP application as well as a GPU-accelerated alteration on a typical home desktop computer as of time of writing, given some particular brand-alignments/proprietary technologies are in mind when the machine is purchased or built. As such, hardware specifications of the home desktop computer used as the local development environment are as follows:
 
 \begin{itemize}
-    \item \textbf{Intel® Core™ i7-6700K CPU}: A single quad-core, consumer-grade, overclockable CPU produced by Intel as part of their 6th generation ``Skylake'' line of processors. It has a clock speed of 4GHz (overclockable) and comes as standard with hyperthreading enabled for an (apparent) core count of 8.
+    \item \textbf{Intel® Core™ i7-6700K CPU}: A single quad-core, consumer-grade, overclockable CPU produced by Intel as part of their 6th generation ``Skylake'' line of processors. It has a clock speed of 4GHz (overclockable) and comes as standard with hyper-threading enabled for an (apparent) core count of 8.
     \item \textbf{Nvidia GeForce GTX 1070 graphics card}: Pascal architecture-based GPU that supports the CUDA Compute functionality. In terms of hardware specifications, it has a 1.5GHz base/core clock speed, 8GB of GDDR5 memory, and 15 streaming multi-processors for parallelism.
     \item \textbf{16GB DDR4 RAM}.
     \item \textbf{Samsung 860 EVO SSD}: Storage disk for the Ubuntu operating system the project with be developed and tested on - both the original SNAP porters and cluster environment use the platform and tools on it, so the choice was made mainly for feature-parity and consistency (see below).
 \end{itemize}
 
-This setup allows for the compilation and testing of the current implementation of SNAP as well as a CUDA-accelerated version by both having the correct hardware that the software is and will be built for, while also being flexible enough in order to test the programs under a range of different inputs and constraints (such as having anywhere from 1 to 8 threads to run the program on). Whilst newer generation Intel processors would be even more ideal, such as the Intel® Core™ i9-7960X 16-core processor, the current hardware more than suffices enough to yield a satisfactory picture of the performance characteristics of the MPI and OpenMP implementation and limitations for this application.
+This set-up allows for the compilation and testing of the current implementation of SNAP as well as a CUDA-accelerated version by both having the correct hardware that the software is and will be built for, while also being flexible enough in order to test the programs under a range of different inputs and constraints (such as having anywhere from 1 to 8 threads to run the program on). Whilst newer generation Intel processors would be even more ideal, such as the Intel® Core™ i9-7960X 16-core processor, the current hardware more than suffices enough to yield a satisfactory picture of the performance characteristics of the MPI and OpenMP implementation and limitations for this application.
 
 \subsubsection{Cluster Testing}
 
@@ -272,24 +223,28 @@ This setup allows for the compilation and testing of the current implementation 
 
 \subsubsection{Software}
 
-Working with an existing and established codebase means adhering to existing toolchains where possible in order to correctly compile the software and to have an identical executing environment to run the program in to ensure the program behaves as intended. Thus, most software choices were predetermined for the project. Where nothing was chosen already, the rest of the choices were made due to personal preference, familiarity, or significant advantages were present that made them ideal for their role. All the options are listed below:
+Working with an existing and established code base means adhering to existing tool chains where possible in order to correctly compile the software and to have an identical executing environment to run the program in to ensure the program behaves as intended. Thus, most software choices were predetermined for the project. Where nothing was chosen already, the rest of the choices were made due to personal preference, familiarity, or significant advantages were present that made them ideal for their role. All the options are listed below:
 
 \begin{itemize}
     \item \textbf{Ubuntu}: An open-source flavour of Linux favoured by developers for its rich tooling, reliance on shells and terminals and the power they provide, and ability to work at multiple levels (high or low depending upon the circumstances).
     \item \textbf{bash}: A ``shell'' that provides a command-line interface to execute programs and interact with a Linux-based operating system. Useful for simplicity and for automation purposes with shell scripts, calling make files to handle compilation etc.
     \item \textbf{Visual Studio Code}: A cross-platform, automatable text editor with multiple extensions available. Used specifically in this project for its syntax highlighting capabilities for C, C++, Make, Bash, and \LaTeX, as well as executable tasks to automate routines with its built-in terminal, and the latex-workshop extension for dynamically building, parsing, and previewing \LaTeX documents. The tasks developed for this project can be found in the \texttt{.vscode/tasks.json} file located in the source code.
     \item \textbf{mpiicc}: Proprietary compiler for compiling code that uses both the MPI parallelisation specifications and Intel-specific C- and C++-based code.
-    \item \textbf{make}: Shell-based program that follows a given set of recipes within a Makefile for compiling multiple dependent parts of source code. Intel provided one to build their SNAP port with their \texttt{mpiicc} compiler, and this will further be modified later to encorporate other files and tools.
+    \item \textbf{make}: Shell-based program that follows a given set of recipes within a Makefile for compiling multiple dependent parts of source code. Intel provided one to build their SNAP port with their \texttt{mpiicc} compiler, and this will further be modified later to incorporate other files and tools.
     \item \textbf{nvcc}: Proprietary compiler produced by Nvidia to compile C++ code that targets the CUDA Compute capabilities of their compatible graphics cards.
-    \item \textbf{pdflatex, bibtex}: Backend programs for Visual Studio Code and latex-workshop to use to built \LaTeX and accompanying bibliography files. Errors and output are parsed and displayed in Visual Studio Code's in-built terminal for an enhanced and compact workflow.
+    \item \textbf{pdflatex, bibtex}: Back-end programs for Visual Studio Code and latex-workshop to use to built \LaTeX and accompanying bibliography files. Errors and output are parsed and displayed in Visual Studio Code's in-built terminal for an enhanced and compact workflow.
 \end{itemize}
 
 \dots
+% ???
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Investigation}\label{investigation}
+\section{Investigation}
+\label{sec:investigation}
+
+All code previously and actively developed by a third-party is legacy code. SNAP, with its various ports, is no different. The original foundation is developed in FORTRAN90 as this language is still used in many areas of HPC 
 
 \subsection{SNAP Repository Cloning and Documentation Review}
 
@@ -302,14 +257,15 @@ In the main repository, various presentations and documentation are provided tha
 \subsection{Execution, Profiling, and Investigation of Code}
 
 \subsubsection{Compilation}
+\label{subsubsec:inv_compilation}
 
-Intel chose to target the C-based port of SNAP towards Intel-based CPUs, hence the decision, as outlined in section \ref{projectmgmt}, to use a machine to locally test the program having an Intel Core i7-6700K CPU. This decision was made due to the original port writers' knowledge of the benefits that the architecture and proprietary improvements could bring to a strictly MPI-based implementation of SNAP. One such proprietary optimisation is the \texttt{-xAVX} compiler flag that was introduced from the ``Sandy Bridge''-line of Intel CPUs onwards that introduced the option to include new instructions (and expanded old instructions) that allowed for operations - specfically fused multiply-accumulate (FMA) operations - for the execution of some SIMD workloads on floating-point data\cite{KanterIntel}. This operation is similar in principle and execution to the SIMD nature of data manipulation on a standard GPU but cannot compare to the speed or scale of that which is obtainable on streaming multi-processors.
+Intel chose to target the C-based port of SNAP towards Intel-based CPUs, hence the decision, as outlined in section \ref{sec:projectmgmt}, to use a machine to locally test the program having an Intel Core i7-6700K CPU. This decision was made due to the original port writers' knowledge of the benefits that the architecture and proprietary improvements could bring to a strictly MPI-based implementation of SNAP. One such proprietary optimisation is the \texttt{-xAVX} compiler flag that was introduced from the ``Sandy Bridge''-line of Intel CPUs onwards that introduced the option to include new instructions (and expanded old instructions) that allowed for operations - specifically fused multiply-accumulate (FMA) operations - for the execution of some SIMD workloads on floating-point data\cite{KanterIntel}. This operation is similar in principle and execution to the SIMD nature of data manipulation on a standard GPU but cannot compare to the speed or scale of that which is obtainable on streaming multi-processors.
 
 GNU make is used to compile all facets of the program, with the main compiler being \texttt{mpiicc}. Whilst \texttt{gcc} is typically used to compile regular, standard C and C++ code, \texttt{icc} is Intel's C++ compiler that was built in order to specifically optimise code to run on Intel-created architectures. This includes optimisations for how memory is specifically accessed, how thread-based parallelisation is handled with regards to the OpenMP specification, data layout improvements, and support for modern iterations of C++ language specifications\footnote{\url{https://software.intel.com/en-us/c-compilers}}. \texttt{mpiicc} is an HPC-specific version of the \texttt{icc} compiler that utilises message-passing library built for use with the \texttt{icc} program (in particular its C-based capabilities). This library implements the Message Passing Interface (MPI) specification version 3.1\cite{intel-mpi-ref} to allow for bi-directional inter-process communication, regardless of how those processes are mapped to the underlying hardware.
 
 Whilst provided in an operational state, this provision is predicated on the correct resources and dependencies being installed and linked up on the host system. Installation of Intel's MPI libraries is straight-forward but ensuring that they will operate correctly when called can be an issue.
 
-One of the foremost scripts devised when the project started was a bash script that ran several commands in order to register locations and assocaitions of binary files that are a core part of Intel's MPI libraries with the host shell (standard bash in this instance) so that the environment could call upon these when needed by either the compiler or the runtime code. Figure \ref{source_list} shows this script of ``source'' commands. The execution of this script was appended to the environment's \texttt{.bashrc} file in order for it to get executed before each bash shell has finished initialisation, allowing for the references to be available all to time to accelerate testing and development.
+One of the foremost scripts devised when the project started was a bash script that ran several commands in order to register locations and associations of binary files that are a core part of Intel's MPI libraries with the host shell (standard bash in this instance) so that the environment could call upon these when needed by either the compiler or the runtime code. Figure \ref{fig:source_list} shows this script of ``source'' commands. The execution of this script was appended to the environment's \texttt{.bashrc} file in order for it to get executed before each bash shell has finished initialisation, allowing for the references to be available all to time to accelerate testing and development.
 
 
 
@@ -343,13 +299,13 @@ Input data in particular format
 . ~/intel/compilers_and_libraries/linux/mpi/intel64/bin/mpivars.sh 
     \end{lstlisting}
     \caption{intel.sh}
-    \label{source_list}
+    \label{fig:source_list}
 \end{figure*}
 
 \subsubsection{Execution}
 % different threads, input data, averaging
 
-Following successful compilation of the SNAP executable, several executions were performed under various environmental-constraints and input data to ascertain the current limitations and performance of the codebase as it stands.
+Following successful compilation of the SNAP executable, several executions were performed under various environmental-constraints and input data to ascertain the current limitations and performance of the code base as it stands.
 
 Due to its reliance on MPI for its processing, the compiled program is executed via Intel's \texttt{mpirun} program at the command line with an argument specifying the size of the MPI communication channel (or overall number of parallelised processes), the \texttt{-np} command-line argument, to divide the work into, as opposed to calling the executable by itself. An example execution is as follows:
 
@@ -390,7 +346,7 @@ MPIR_Cart_create(58)......: Size of the communicator (1) is smaller than the siz
 \subsection{gprof}
 % Print out of "example" analysis
 
-Without knowing sight-on-scene which aspects of the codebase are called from which parent subroutine, for whatever piece of input or interim data, and what time, it's necessary to perform time-centric analysis to gauge how much time is being spent in which particular subroutines as these are the main bottlenecks when it comes to the performance of an algorithm.
+Without knowing sight-on-scene which aspects of the code base are called from which parent subroutine, for whatever piece of input or interim data, and what time, it's necessary to perform time-centric analysis to gauge how much time is being spent in which particular subroutines as these are the main bottlenecks when it comes to the performance of an algorithm.
 
 
 
@@ -424,12 +380,15 @@ Being the only way to usefully execute general-purpose code on a(n Nvidia) GPU, 
 \begin{itemize}
     \item Architecture
     \item Kernel code
-    \item Shared memory, thread cooperation etc
+    \item Shared memory, thread cooperation etc.
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Design}\label{design}
+\section{Design}
+\label{sec:design}
+
+\dots
 
 
 \subsection{Mathematical Model}
@@ -438,7 +397,7 @@ In order to get a gist of the amount of reasonable work the GPU could handle at 
 
 \begin{enumerate}
 
-\item The algorithm defines the problem space as a three-dimensionality discretized grid of cells, each with their own values and interactions with their neighbouring adjacent cells – this forms the core of the SNAP algorithm (it itself approximating a continuous algorithm).
+\item The algorithm defines the problem space as a three-dimensionality discretised grid of cells, each with their own values and interactions with their neighbouring adjacent cells – this forms the core of the SNAP algorithm (it itself approximating a continuous algorithm).
 
 \item The problem space is cubic with side $ n $ for ease of modelling. A generalisation to a cuboidal space with dimensions $ (x, y, z) $ can be abstracted from the cubic model later.
 
@@ -518,57 +477,140 @@ Aggregating these over all slices, alongside an assumed small, constant kernel f
 
 \subsection{Ideation}
 
+\begin{itemize}
+    \item In-place replacement
+    \item Loop flattening
+\end{itemize}
+
 \subsection{Test Harness}
 
+In order to accelerate the process of testing, analysis, and comparison of data and timings yielded from the runs of the two separate SNAP variants, a decision was made to create a test harness program that will automate the process of running and collecting results.
 
+Automation with regards to testing is key to repeatability, reproducibility, the speed at which results can be obtained, and general accuracy of the results. Hence, for testing of both programs to be effective, the test harness program must meet certain criteria in a holistic process to ensure the project is a success. The overall aims of the program are: to act as a wrapper to run both versions of the program with; to provide high-precision timing of executions; to handle any errors thrown; and to output, compare, and save the results of executions for analysis and reporting.
+
+Firstly, the program should act as a wrapper to the execution of both programs. Manual execution of the programs is slow, can be inaccurate, parameters can be missed accidentally, and executing a sequential string of commands, each varying a little (e.g. only changing the input and output destinations) is tedious. Programmatic control will expedite the testing process and provide extra flexibility should the testing process need to be enhanced or altered in the future.
+
+Further to this is, crucially, accurately timing the execution of both programs. It would be an ineffective solution to the problem if the GPU-accelerated version of SNAP would be routinely slower than the original. Specifically, timing both the entire execution of the program and the internal algorithm/function we're seeking to modify would give an overall impression of the efficacy of the solution. For example, if the algorithm's execution time has decreased but the overall program's execution time has increased due to knock-on factors as a result, then the solution would need further work.
+
+Advanced control could not be achieved if the harness were not able to capture output and errors of the underlying programs that it was calling. It's important to know when errors are found as it might be necessary to halt the problem and report it or continue on regardless depending on what happened - the solution needs to provide this support and subsequently handle it. To this end, obtained the output of both of the programs is a required detail to analyse problems, but most importantly, to compare the final numerical results of the execution on identical inputs to ensure that the results are the same. Inconsistent results mean an improper, incorrect solution. This comparison and analytical process needs to also be in part to mostly automated to save users from wasting time doing it manually and potentially not spotting a discrepancy or difference.
+
+A program that meets these central requirements will act as an effective and useful testing tool for assessing if the end solution meets the objectives of this project.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Implementation}\label{implementation}
+\section{Implementation}
+\label{sec:implementation}
+
+An experimental alteration to an existing code base can often be wrought with challenges. Therefore, a solution to this problem that meets all the objectives outlined earlier must satisfy the following criteria:
+
+\begin{itemize}
+    \item \textbf{Accuracy} - Simply put: if the results of the program after the modification do not align with the results of the unmodified program, then the solution is not satisfactory and is thus incorrect. Care and constant ratification must be performed often to ensure this trait is maintained as development occurs.
+    \item \textbf{Speed} - A solution that is not better than or comparable to the existing program's performance is worse in practice. In the worst case, the program should be at least as fast.
+    \item \textbf{Simplicity} - A solution that is conceptually harder than the existing code is not only not as maintainable but increases the fragility of the algorithm. Code that is improved \textit{and} intuitive can lead to further improvements down the line such as performance gains, reduction of necessary code, or easier parallelisation.
+\end{itemize}
+
+Accuracy and speed are easily assessed using simple comparative automations and time-keeping. These were the key motivators for introducing a test harness program into the development and testing cycle (see Subsection \ref{subsec:imp_testharness} for development details). Simplicity is a more subjective metric for evaluating a software-based project. A best-attempt at an objective review of the implementation will be featured in the conclusion (Section \ref{sec:conclusion}). However, personal preference and opinion will always factor into such a review, so the reader can also review the code base provided to make up their own mind.
+
+Development was undertaken iteratively after installation of all of the necessary prerequisites to start programming. The basic cycle mimics aspects of the Agile development cycle\footnote{\url{https://www.agilealliance.org/agile101/}} and other traditional development cycles:
+
+\begin{enumerate}
+    \item Partition the current problem into a list of remaining sub-problems.
+    \item Write code to solve the current sub-problem.
+    \item Test the code.
+    \begin{enumerate}
+        \item If it works, move forward to step 1.
+        \item Else, go back to step 2.
+    \end{enumerate}
+\end{enumerate}
+
+This project diverges from this slightly in that during the second stage code was written for both the CUDA-based alteration and the test harness. As one was developed, the other was developed and tweaked further. Both were kept in step to ensure accuracy and speed. Implementation details of component of the project follow.
+
 
 \subsection{Prerequisites}
-\begin{itemize}
-    \item Nvidia drivers
-    \item CUDA libraries
-\end{itemize}
+\label{subsec:imp_prerequisites}
+
+To begin development, in addition to the installation of the necessary Ubuntu packages for C/C++ compilation and python development, it's necessary to install binaries associated with the CUDA development kit and runtime.
+
+A proprietary driver for Nvidia graphics cards on Ubuntu is required for CUDA code to run on the device. This is provided as part of the ``CUDA Toolkit'' that is freely available to all developers from Nvidia's Developer portal \url{https://developer.nvidia.com/cuda-downloads}. Installation is a matter of following the steps in the installer. It was important to note that the driver provided with the installer is the one guaranteed to work with the CUDA Toolkit, as opposed to the ones provided as part of the operating system vendor's software package ecosystem. Modification of the \texttt{PATH} and \texttt{LD\_LIBRARY\_PATH} to reference the \texttt{/usr/local/cuda-10.1/*}\footnote{The latest CUDA Toolkit version at time of development.} folders sets up the running environment properly and, with careful compilation, now allows for compilation and execution of CUDA code via the \texttt{nvcc} compiler.
+
+One last prerequisite is to have the Intel MPI libraries installed an operational on the development machine also. This is covered in Subsubsection \ref{subsubsec:inv_compilation}.
+
 
 \subsection{Test Harness}
+\label{subsec:imp_testharness}
+
+Developed in conjunction with the modified SNAP application (Subsection \ref{subsec:imp_mod_snap})), the test harness program is a versatile complementary program that aims to help achieve the objectives of the project by providing the following features:
+
 \begin{itemize}
-    \item Python
-    \item OS-calls and handling
-    \item 
+    \item Acts as a wrapper to both CPU and GPU-augmented versions of the SNAP programs.
+    \item Precisely times their execution.
+    \item Compares outputs of the programs to gauge consistency.
 \end{itemize}
 
+\dots Python will be the central implementation language for this helper application as the language provides myriad libraries - default core libraries and community-developed external libraries - that can support all of the various goals of the application. For this project, high-precision timing and operating system interaction libraries are the main areas of interest. Both of these are provided by Python's core \texttt{os}, \texttt{subprocess}, and \texttt{time} APIs. Further advantages and features utilised as part of the script are discussed further on when each tenant of the application is described.
+
+The primary goal of the test harness program is to act as a wrapper to execute either one of the SNAP programs. This control allows for a fine-level of timing and parameter control that isn't guaranteed with manual execution. Python's \texttt{subprocess} library can interoperate with Ubuntu and execute shell commands specified by strings in the script and have them execute within a subprocess. Not only does this provide exact start and end times of when the underlying subprocess is forked and joined back into the main executing process, but the library provides an extensive API to handle and report errors, output, stream input, and more.
+
+
+
+Detailed breakdowns are possible via \texttt{MPI\_Wtime()} and parsing the output values, but
+
+% Timing
+
+% Diffing outputs
+% Cleaning timestamps, separating time blocks
+
 \subsection{Modified SNAP Application}
+\label{subsec:imp_mod_snap}
+
 \begin{itemize}
     \item Intel C MPI library
     \item Externalised CUDA algorithms
     \item nvcc and mpiicc
 \end{itemize}
 
+Understanding the code\dots
+
+\subsubsection{Externalised CUDA Algorithms}
+
+\subsubsection{\texttt{nvcc} and \texttt{mpiicc}}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Testing}\label{testing}
+\section{Testing}
+\label{sec:testing}
 
 \begin{itemize}
     \item Test Plan
-    \item Test Harness Application
     \item Local Testing
+    \item Results
 \end{itemize}
+
+
+\subsection{Test Plan}
+
+\subsection{Results}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Conclusion}\label{conclusion}
+\section{Conclusion}
+\label{sec:conclusion}
 
 \subsection{Limitations}
 
+\begin{itemize}
+    \item Very proprietary code base
+\end{itemize}
+
 \subsection{Improvements}
 
+Over the course of the project, several issues or development quirks came to light in almost every aspect of the pipeline. Several key improvements that could be made to the project are presented below that could rectify these should subsequent or related projects take on a similar endeavour to the one presented in this report:
+
 \begin{itemize}
-    \item Docker container for a consistent operating environment
-    \item Modernise the input data into a new format (e.g. JSON)
+    \item \textbf{Containerisation}: Docker container for a consistent operating environment\dots
+    \item \textbf{Standardised input data format}: Modernise the input data into a new format (e.g. JSON)\dots
 \end{itemize}
 
 \subsection{Further Work}
