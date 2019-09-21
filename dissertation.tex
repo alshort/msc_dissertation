@@ -267,13 +267,27 @@ Whilst provided in an operational state, this provision is predicated on the cor
 
 One of the foremost scripts devised when the project started was a bash script that ran several commands in order to register locations and associations of binary files that are a core part of Intel's MPI libraries with the host shell (standard bash in this instance) so that the environment could call upon these when needed by either the compiler or the runtime code. Figure \ref{fig:source_list} shows this script of ``source'' commands. The execution of this script was appended to the environment's \texttt{.bashrc} file in order for it to get executed before each bash shell has finished initialisation, allowing for the references to be available all to time to accelerate testing and development.
 
+\begin{figure}[h]
+    \centering
+    \begin{lstlisting}[language=bash, breaklines]
+#!/bin/sh
+. ~/intel/bin/compilervars.sh -arch intel64 -platform linux
+. ~/intel/mkl/bin/mklvars.sh intel64
+. ~/intel/bin/iccvars.sh -arch intel64 -platform linux
+. ~/intel/compilers_and_libraries/linux/mpi/intel64/bin/mpivars.sh 
+    \end{lstlisting}
+    \caption{intel.sh}
+    \label{fig:source_list}
+\end{figure}
 
 
 \subsubsection{Understanding the Input Data}
 
+% TODO
+
 Input data in particular format
 
-\begin{figure}
+\begin{figure}[h]
     \centering
     \begin{tabular}{| p{1.7cm} | p{5.7cm} |}
         \hline
@@ -289,18 +303,7 @@ Input data in particular format
     \label{table:input-data}
 \end{figure}
 
-\begin{figure*}
-    \centering
-    \begin{lstlisting}[language=bash]
-#!/bin/sh
-. ~/intel/bin/compilervars.sh -arch intel64 -platform linux
-. ~/intel/mkl/bin/mklvars.sh intel64
-. ~/intel/bin/iccvars.sh -arch intel64 -platform linux
-. ~/intel/compilers_and_libraries/linux/mpi/intel64/bin/mpivars.sh 
-    \end{lstlisting}
-    \caption{intel.sh}
-    \label{fig:source_list}
-\end{figure*}
+
 
 \subsubsection{Execution}
 % different threads, input data, averaging
@@ -315,21 +318,21 @@ mpirun -np 4 src/snap_mkl_vml --fi qasnap/center_src/in01 --fo test.out
 
 Figure \ref{fig:snap-successful-run} demonstrates the output of a successful execution of a given input.
 
-\begin{figure*}
+\begin{figure}[!h]
     \centering
     \begin{lstlisting}[breaklines]
 andy@pc:~/uni/snap/src$ mpirun -np 4 ./snap_cpu --fi ../qasnap/center_src/in01 --fo test.out
-*WARNING: PINIT_OMP: NTHREADS>MAX_THREADS; reset to MAX_THREADS
 
+*WARNING: PINIT_OMP: NTHREADS>MAX_THREADS; reset to MAX_THREADS
 Success! Done in a SNAP!
     \end{lstlisting}
     \caption{A successful execution of the compiled snap\_mkl\_vml binary}
     \label{fig:snap-successful-run}
-\end{figure*}
+\end{figure}
 
-It was identified early on into the testing - whilst undocumented, it could be said to be a core feature of the MPI specification itself - that defining an \texttt{-np} value that is not a whole multiple of the product of the defined grid geometry from the input data (\texttt{npey} * \texttt{npez}) then the runtime configuration cannot work out how to divide up the workload into whole, viable chunks to send to all processes. Figure \ref{fig:snap-unsuccessful-run} shows the error message provided in this scenario.
+It was identified early on into the testing - whilst undocumented, it could be said to be a core feature of the MPI specification itself - that defining an \texttt{-np} value that is not a whole multiple of the product of the defined grid geometry from the input data (\texttt{npey} $ \times $ \texttt{npez}) then the runtime configuration cannot work out how to divide up the workload into whole, viable chunks to send to all processes. Figure \ref{fig:snap-unsuccessful-run} shows the error message provided in this scenario.
 
-\begin{figure*}
+\begin{figure}[h]
     \centering
     \begin{lstlisting}[breaklines]
 andy@pc:~/uni/snap/src$ mpirun -np 1 ./snap_cpu --fi ../qasnap/center_src/in01 --fo test.out
@@ -340,46 +343,70 @@ MPIR_Cart_create(58)......: Size of the communicator (1) is smaller than the siz
     \end{lstlisting}
     \caption{An unsuccessful execution of the snap\_mkl\_vml binary due to imposed multi-processing limitations}
     \label{fig:snap-unsuccessful-run}
-\end{figure*}
+\end{figure}
+
+% TODO
+\dots
 
 
-\subsection{gprof}
+\subsection{\texttt{gprof}}
 % Print out of "example" analysis
 
-Without knowing sight-on-scene which aspects of the code base are called from which parent subroutine, for whatever piece of input or interim data, and what time, it's necessary to perform time-centric analysis to gauge how much time is being spent in which particular subroutines as these are the main bottlenecks when it comes to the performance of an algorithm.
+The central issue of profiling parallelised code is that of ascertaining which functions calls are being called and calculating the total amount of time spent there (amongst obtaining other metrics and measurements of interest). In serial code, this task is easy. However, parallel code can be distributed over multiple nodes, processors, and/or threads depending on the resources available, the way the program works, and how the scheduling system decides to allocate work and timeslots. All of this must be orchestrated together, tracked, and aggregated to form one cohesive picture of what the application did on the execution of interest.
 
+\texttt{gprof} is a command-line based profiling tool that displays the call graph profile data of any C, Pascal, or Fortran code it was set to monitor\footnote{On the provision that the code in question was compiled with the \texttt{-pg} parameter beforehand.}. When the compiled binary is run, it will produce a single \texttt{gmon.out} file containing the pertinent profile data. This data is consumed by the main gprof application for analysis. In terms of the output it can produce, \texttt{gprof} is able to relate the \texttt{gmon.out} profile data to the program's symbol table to output a call graph of functions and the functions that call them and how they related to one another. In addition to this, \texttt{gprof} can also output the total number of calls of a function and how long the program spend inside each subroutine.
 
+In order to cater for parallel programs, \texttt{gprof} is able to sum the results of multiple profile data files into one for a general overview. Producing the multiple traces is performed by setting the \texttt{GMON\_OUT\_PREFIX} environment variable to differentiate the traces. Setting this variable to ``\texttt{gmon.out-}'' will cause \texttt{gprof} to append the process's ID to the end of the prefix, producing several files pertaining to the run of the program - one for each process. \texttt{gprof -s} will sum these together and produce a useful, informative result.
 
-\begin{figure}[h]
+Performing this profiling on the standard SNAP application compiled earlier in the investigation yield the table shown in Figure \ref{table:gprof_log}. In the table is a truncated subset of the five most called and time-intensive subroutines. Multiple executions of the program exhibit near identical characteristics in terms of the subroutines reported back by the \texttt{gprof} tool.
+
+\begin{figure}[!h]
     \centering
     \begin{tabular}{ | c | c | c | c | }
 \hline
 \% Time & Cumulative Secs & Calls & Name \\
 \hline
-66.67 & 0.02 & 14976 & dim3\_sweep \\
-33.33 & 0.02 & 14976 & sweep \\
-0.00  & 0.03 & 29952 & precv\_d\_3d \\
-0.00  & 0.03 & 29952 & psend\_d\_3d \\
-0.00  & 0.03 & 14976 & octsweep \\
+66.67 & 0.02 & 14976 & \texttt{dim3\_sweep} \\
+33.33 & 0.02 & 14976 & \texttt{sweep} \\
+0.00  & 0.03 & 29952 & \texttt{precv\_d\_3d} \\
+0.00  & 0.03 & 29952 & \texttt{psend\_d\_3d} \\
+0.00  & 0.03 & 14976 & \texttt{octsweep} \\
 \hline
     \end{tabular}
-    \caption{Amalgamated gprof log (truncated to top 5 rows)}
+    \caption{Amalgamated \texttt{gprof} log (truncated to top 5 rows)}
     \label{table:gprof_log}
 \end{figure}
+
+Two of the functions are associated with intrinsic data transmission across MPI processes. The others are part of the main transport sweep algorithm that is a central tenant of the SNAP program. This was to be expected but is now experimentally confirmed.
+
+Now that a promising candidate for GPU-acceleration has been found in the \texttt{dim3\_sweep} subroutine, a review, analysis, and breakdown of the particular code can be done to identify areas for conversion.
 
 
 \subsubsection{Code Analysis}
 
+% TODO
+\dots
+
 \subsection{Learning CUDA}
-% "CUDA by Example" book
 
-Being the only way to usefully execute general-purpose code on a(n Nvidia) GPU, it is important to comprehensively understand CUDA before delving into making any modification to the source code of this project.
+Being the only way to execute general-purpose computational code on a[n Nvidia] GPU, it is important to comprehensively understand CUDA before delving into any source code modification.
 
+Alongside the content taught in the MSc CS402 High-Performance Computing module, another resource that was used to learn about CUDA was the book ``CUDA by Example'' (ISBN-13: 978-0-13-138768-3) by Jason Sanders and Edward Kandrot, two senior software engineers working on CUDA teams at Nvidia.
+
+As previously mentioned in Section \ref{sec:introduction}, GPUs are architected in such a way as to maximise the level of parallelism for a given operation over a given set of data at once (a.k.a. SIMD). ``CUDA by Example'' first talks about translating traditional code into kernel functions - small functions that transform some given data only - that operate on the device. Afterwards, concepts and tips are given to help the reader utilise more of the GPU's processing power by introducing the grid-thread-block model, as shown in Figure \ref{fig:gridblockthread}. This abstraction shows how the CUDA runtime divides and distributes work across the inner processors on the graphics device.
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.4\textwidth]{images/grid_block_thread.png}
+    \caption{Thread block abstraction model used in CUDA programming}
+    \label{fig:gridblockthread}
+\end{figure}
+
+Each thread and block will have related positional indices that identify it within its parent container. This unique numerical identifier can be decomposed into N-dimensional coordinates (usually two or three dimensional) to perform arithmetic on a specific chunk of the data. Partitioning the data in this way allows for the vast parallelism as the programmer could submit an entire block or a small group of threads to the device for processing - there is a high level of fidelity granted to both data processing and transfer this way.
 
 
 \begin{itemize}
-    \item Architecture
-    \item Kernel code
+    \item Streams
     \item Shared memory, thread cooperation etc.
 \end{itemize}
 
@@ -388,10 +415,15 @@ Being the only way to usefully execute general-purpose code on a(n Nvidia) GPU, 
 \section{Design}
 \label{sec:design}
 
-\dots
+Principally, the aim of this project is to establish, as a proof-of-concept, whether an existing code base can be meaningfully accelerated using CUDA technologies. A complete rewrite is not the goal as SNAP is a legacy project.
+
+Establishing the efficacy of the proposed solution will be done against a best-case scenario model of parallel execution. Knowing this model is not attainable in practice for this project is acceptable (and not in scope). It will serve as a solid basis for future work should a complete refactor or related work be undertaken.
+
+Following the conceptual, pure model, potential designs are remarked upon with their advantages and disadvantages highlighted, and supporting programs specified afterwards.
 
 
 \subsection{Mathematical Model}
+% TODO: Go over
 
 In order to get a gist of the amount of reasonable work the GPU could handle at once and estimates for the amount of time and data movement needed for the optimal implementation, a mathematical model was developed to help visualise and describe the interactions between adjacent cells in the approximated algorithm that SNAP uses. The following assumptions were made when developing this model:
 
@@ -532,7 +564,7 @@ This project diverges from this slightly in that during the second stage code wa
 
 To begin development, in addition to the installation of the necessary Ubuntu packages for C/C++ compilation and python development, it's necessary to install binaries associated with the CUDA development kit and runtime.
 
-A proprietary driver for Nvidia graphics cards on Ubuntu is required for CUDA code to run on the device. This is provided as part of the ``CUDA Toolkit'' that is freely available to all developers from Nvidia's Developer portal \url{https://developer.nvidia.com/cuda-downloads}. Installation is a matter of following the steps in the installer. It was important to note that the driver provided with the installer is the one guaranteed to work with the CUDA Toolkit, as opposed to the ones provided as part of the operating system vendor's software package ecosystem. Modification of the \texttt{PATH} and \texttt{LD\_LIBRARY\_PATH} to reference the \texttt{/usr/local/cuda-10.1/*}\footnote{The latest CUDA Toolkit version at time of development.} folders sets up the running environment properly and, with careful compilation, now allows for compilation and execution of CUDA code via the \texttt{nvcc} compiler.
+A proprietary device driver for Nvidia graphics cards on Ubuntu is required for CUDA code to run on the device. This is provided as part of the ``CUDA Toolkit'' that is freely available to all developers from Nvidia's Developer portal \url{https://developer.nvidia.com/cuda-downloads}. Installation is a matter of following the steps in the installer. It was important to note that the driver provided with the installer is the one guaranteed to work with the CUDA Toolkit, as opposed to the ones provided as part of the operating system vendor's software package ecosystem. Modification of the \texttt{PATH} and \texttt{LD\_LIBRARY\_PATH} to reference the \texttt{/usr/local/cuda-10.1/*}\footnote{The latest CUDA Toolkit version at time of development.} folders sets up the running environment properly and, with careful compilation, now allows for compilation and execution of CUDA code via the \texttt{nvcc} compiler.
 
 One last prerequisite is to have the Intel MPI libraries installed an operational on the development machine also. This is covered in Subsubsection \ref{subsubsec:inv_compilation}.
 
@@ -540,7 +572,9 @@ One last prerequisite is to have the Intel MPI libraries installed an operationa
 \subsection{Test Harness}
 \label{subsec:imp_testharness}
 
-Developed in conjunction with the modified SNAP application (Subsection \ref{subsec:imp_mod_snap})), the test harness program is a versatile complementary program that aims to help achieve the objectives of the project by providing the following features:
+% TODO: This
+
+Developed in conjunction with the modified SNAP application (Subsection \ref{subsec:imp_mod_snap}), the test harness program is a versatile complementary program that aims to help achieve the objectives of the project by providing the following features:
 
 \begin{itemize}
     \item Acts as a wrapper to both CPU and GPU-augmented versions of the SNAP programs.
@@ -548,14 +582,19 @@ Developed in conjunction with the modified SNAP application (Subsection \ref{sub
     \item Compares outputs of the programs to gauge consistency.
 \end{itemize}
 
-\dots Python will be the central implementation language for this helper application as the language provides myriad libraries - default core libraries and community-developed external libraries - that can support all of the various goals of the application. For this project, high-precision timing and operating system interaction libraries are the main areas of interest. Both of these are provided by Python's core \texttt{os}, \texttt{subprocess}, and \texttt{time} APIs. Further advantages and features utilised as part of the script are discussed further on when each tenant of the application is described.
+For this supplementary program, Python will be the main implementation language. The core libraries of Python, in conjunction with its ease of development and portability will allow the program to be developed rapidly and be more intuitive.
+
+
+
+for this helper application as the language provides myriad libraries - default core libraries and community-developed external libraries - that can support all of the various goals of the application. For this project, high-precision timing and operating system interaction libraries are the main areas of interest. Both of these are provided by Python's core \texttt{os}, \texttt{subprocess}, and \texttt{time} APIs. Further advantages and features utilised as part of the script are discussed further on when each tenant of the application is described.
 
 The primary goal of the test harness program is to act as a wrapper to execute either one of the SNAP programs. This control allows for a fine-level of timing and parameter control that isn't guaranteed with manual execution. Python's \texttt{subprocess} library can interoperate with Ubuntu and execute shell commands specified by strings in the script and have them execute within a subprocess. Not only does this provide exact start and end times of when the underlying subprocess is forked and joined back into the main executing process, but the library provides an extensive API to handle and report errors, output, stream input, and more.
 
 
 
-Detailed breakdowns are possible via \texttt{MPI\_Wtime()} and parsing the output values, but
+Detailed breakdowns are possible via \texttt{MPI\_Wtime()} and parsing the output values, but\dots
 
+% TODO
 % Timing
 
 % Diffing outputs
@@ -612,8 +651,6 @@ Over the course of the project, several issues or development quirks came to lig
     \item \textbf{Containerisation}: Docker container for a consistent operating environment\dots
     \item \textbf{Standardised input data format}: Modernise the input data into a new format (e.g. JSON)\dots
 \end{itemize}
-
-\subsection{Further Work}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
