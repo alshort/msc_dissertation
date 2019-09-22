@@ -571,8 +571,7 @@ One last prerequisite is to have the Intel MPI libraries installed an operationa
 
 \subsection{Test Harness}
 \label{subsec:imp_testharness}
-
-% TODO: This
+% TODO: Finish
 
 Developed in conjunction with the modified SNAP application (Subsection \ref{subsec:imp_mod_snap}), the test harness program is a versatile complementary program that aims to help achieve the objectives of the project by providing the following features:
 
@@ -582,23 +581,28 @@ Developed in conjunction with the modified SNAP application (Subsection \ref{sub
     \item Compares outputs of the programs to gauge consistency.
 \end{itemize}
 
-For this supplementary program, Python will be the main implementation language. The core libraries of Python, in conjunction with its ease of development and portability will allow the program to be developed rapidly and be more intuitive.
+For this supplementary program, Python version 3.7+ will be the main implementation language. The core libraries of Python, in conjunction with its ease of development and portability will allow the program to be developed rapidly and be more intuitive. Version 3.7.3 is used explicitly due to its modernity (it was the latest available distribution at the time of writing) and this script's reliance on the \texttt{time.time\_ns()} function (the use of which is described later).
 
+Three of the main APIs utilised in the program that meet most of the needs of the above requires are the \texttt{os}, \texttt{subprocess}, and \texttt{time} libraries found in Python's standard set of core libraries. These libraries provide tight, low-level, flexible interfaces for working with the host operating system in addition to providing high-precision timing facilities for program comparison and profiling. Further advantages are discussed as the implementation details of each point are outlined in turn.
 
+The primary goal of the test harness program is to act as a wrapper to execute either one of the SNAP programs. This control allows for a fine-level of timing and parameter control that isn't guaranteed with manual execution. Python's \texttt{subprocess} library can interoperate with Ubuntu and execute shell commands specified by strings in the script and have them execute within a subprocess. Not only does this provide exact start and end times of when the underlying subprocess is forked and joined back into the main executing process, but the library provides an extensive API to handle and report errors, output, and stream input for a variety of sources, amongst other features. Specifically, \texttt{subprocess.call([\dots])} is liberally utilised as it takes in an array of parameters (the head of which being the program binary name) and executes it as if it were a shell command. Programmatically inserting input parameters, the path of the SNAP binary - chosen by an argument passed into the \texttt{test.py} script itself - to execute, as well as any additional information and arguments for manipulating the execution or profiling characteristics (see Subsubsection \ref{subsubsec:testapi} for further details). If it is ever the case that written algorithms in the script could be deferred to an existing piece of software or bash script (e.g. \texttt{diff} or \texttt{cmp}) then this could also be used to refactor the program to utilise those instead.
 
-for this helper application as the language provides myriad libraries - default core libraries and community-developed external libraries - that can support all of the various goals of the application. For this project, high-precision timing and operating system interaction libraries are the main areas of interest. Both of these are provided by Python's core \texttt{os}, \texttt{subprocess}, and \texttt{time} APIs. Further advantages and features utilised as part of the script are discussed further on when each tenant of the application is described.
+The \texttt{os} library handles difference between operating systems types to make the program as OS-agnostic as possible. Details such as file path separators, reading, and writing are handled through a common API. This allows for easy reading of an input or output file into the program for line-by-line parsing by several other routines and libraries used for the other stages and parts of the script. \texttt{os.remove} is used to delete the extraneous \texttt{gmon.out} files produced by profiling, while \texttt{os.path.join} is used to link scripted parts of paths together to find the output directory and particular files within it for averaging of execution times and comparison of the contents of the files - alongside the \texttt{open(\dots)} function from standard Python.
 
-The primary goal of the test harness program is to act as a wrapper to execute either one of the SNAP programs. This control allows for a fine-level of timing and parameter control that isn't guaranteed with manual execution. Python's \texttt{subprocess} library can interoperate with Ubuntu and execute shell commands specified by strings in the script and have them execute within a subprocess. Not only does this provide exact start and end times of when the underlying subprocess is forked and joined back into the main executing process, but the library provides an extensive API to handle and report errors, output, stream input, and more.
+High-precision timing is provided by the \texttt{time} library: specifically, the \texttt{time.time\_ns()} function. This function was introduced in Python 3.7 when nanoseconds resolution was introduced to the \texttt{time} library\footnote{\url{https://docs.python.org/3.7/whatsnew/3.7.html#pep-564-add-new-time-functions-with-nanosecond-resolution}}. Precision and accuracy is key when doing time-based profiling specifically, hence the require for the nanosecond time resolution. \texttt{time} previously only had the \texttt{time.time()} function which only returned the number of seconds since a certain date, i.e. Unix epoch time, and this was certainly not appropriate.
 
-
-
-Detailed breakdowns are possible via \texttt{MPI\_Wtime()} and parsing the output values, but\dots
+Detailed breakdowns are possible via \texttt{MPI\_Wtime()} and parsing the output values, but
 
 % TODO
 % Timing
 
 % Diffing outputs
 % Cleaning timestamps, separating time blocks
+
+\subsubsection{\texttt{test.py} API}
+\label{subsubsec:testapi}
+% TODO: Type up the -help output nicely.
+
 
 \subsection{Modified SNAP Application}
 \label{subsec:imp_mod_snap}
