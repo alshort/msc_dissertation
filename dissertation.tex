@@ -2,8 +2,8 @@
 
 \usepackage{adjustbox}
 \usepackage{amsmath}
-% \usepackage{caption}
 \usepackage[nocompress]{cite}
+\usepackage{float}
 \usepackage{geometry}
 \usepackage{graphicx}
 \usepackage{listings}
@@ -135,54 +135,52 @@ Several factors need to be considered when developing a software project. Manage
 Time constraints are always a pressing and important factor to consider when starting a large project. The external largest constraints imposed on this project would be the time required to complete several overlapping coursework assignments for various MSc modules, in addition to setting aside time to adequately prepare for and take the end of year exams in June and July. To manage these obstacles, the timeline presented in Figure \ref{fig:gantt_chart} was developed early on in the research phase of the project to delineate when and how long certain key stages of development were to last for, with the potential speed-bumps to this project's progression (i.e. MSc examinations) highlighted and accounted for.
 
 \begin{figure*}[ht]
-    % \begin{adjustbox}{max width=0.7\textwidth}
-        \centering
-        \ganttset{calendar week text=\small{\startday}}
-        \begin{ganttchart}[
-            y unit chart=0.75cm,
-            hgrid,x unit=0.1cm,
-            hgrid style/.style={draw=black!5, line width=.75pt},
-            milestone/.style={fill=black, draw=white, rounded corners=4pt},
-            milestone label font={\it\scriptsize},
-            bar label node/.style={text width=2cm,align=right,font=\scriptsize\RaggedLeft,anchor=east},
-            group label node/.style={text width=2cm,align=right,font=\bf\scriptsize\RaggedLeft,anchor=east},
-            title label anchor/.style={below=-1.6ex},
-            time slot format=little-endian]{01-05-2019}{26-09-2019}
-        \gantttitlecalendar{month=shortname, week=4} \\
-        \ganttgroup{Project Duration}{01-05-2019}{26-09-19}\\
-        % Impediments
-        \ganttmilestone{Examinations}{13-05-19}
-        \ganttmilestone[inline=false]{}{30-05-19}
-        \ganttmilestone[inline=false]{}{31-05-19}
-        \ganttmilestone[inline=false]{}{01-06-19}
-        \ganttmilestone[inline=false]{}{05-06-19}
-        \ganttmilestone[inline=false]{}{08-06-19}\\
-        % Investigation
-        \ganttgroup{Investigation}{01-05-19}{24-06-19}
-        \ganttcontingency[]{}{25-06-19}{02-07-19}\\
-        \ganttbar{Preliminary Exploration}{01-05-19}{01-06-19}\\
-        \ganttbar{Codebase Examination}{03-05-19}{17-06-19}\\
-        \ganttbar{Learning CUDA}{10-06-19}{24-06-19}\\
-        % Design
-        \ganttgroup{Design}{05-06-19}{31-07-19}
-        \ganttcontingency[]{}{01-08-19}{08-08-19}\\
-        \ganttbar{Mathematical Model}{05-06-19}{15-07-19} \\
-        \ganttbar{Test Harness Concept}{01-07-19}{15-07-19}\\
-        \ganttbar{Ideation}{01-07-19}{31-07-19}\\
-        % Design and implementation
-        \ganttgroup{Implementation}{01-07-19}{18-08-19}
-        \ganttcontingency[]{}{19-08-19}{30-08-19}\\
-        % Testing
-        \ganttgroup{Testing}{15-07-19}{30-08-19}
-        \ganttcontingency[]{}{31-08-19}{07-09-19}\\
-        \ganttbar{Local Profiling and Benchmarking}{15-07-19}{19-08-19} \\
-        \ganttbar{Cluster Profiling and Benchmarking}{29-07-19}{30-08-19} \\
-        % Dissertation
-        \ganttgroup{Dissertation}{12-08-19}{26-09-19} \\
-        \ganttbar{Writing}{12-08-19}{26-09-19} \\
-        \ganttbar{Proof Reading and Editing}{5-09-19}{26-09-19}
-        \end{ganttchart}
-    % \end{adjustbox}
+    \centering
+    \ganttset{calendar week text=\small{\startday}}
+    \begin{ganttchart}[
+        y unit chart=0.75cm,
+        hgrid,x unit=0.1cm,
+        hgrid style/.style={draw=black!5, line width=.75pt},
+        milestone/.style={fill=black, draw=white, rounded corners=4pt},
+        milestone label font={\it\scriptsize},
+        bar label node/.style={text width=2cm,align=right,font=\scriptsize\RaggedLeft,anchor=east},
+        group label node/.style={text width=2cm,align=right,font=\bf\scriptsize\RaggedLeft,anchor=east},
+        title label anchor/.style={below=-1.6ex},
+        time slot format=little-endian]{01-05-2019}{26-09-2019}
+    \gantttitlecalendar{month=shortname, week=4} \\
+    \ganttgroup{Project Duration}{01-05-2019}{26-09-19}\\
+    % Impediments
+    \ganttmilestone{Examinations}{13-05-19}
+    \ganttmilestone[inline=false]{}{30-05-19}
+    \ganttmilestone[inline=false]{}{31-05-19}
+    \ganttmilestone[inline=false]{}{01-06-19}
+    \ganttmilestone[inline=false]{}{05-06-19}
+    \ganttmilestone[inline=false]{}{08-06-19}\\
+    % Investigation
+    \ganttgroup{Investigation}{01-05-19}{24-06-19}
+    \ganttcontingency[]{}{25-06-19}{02-07-19}\\
+    \ganttbar{Preliminary Exploration}{01-05-19}{01-06-19}\\
+    \ganttbar{Codebase Examination}{03-05-19}{17-06-19}\\
+    \ganttbar{Learning CUDA}{10-06-19}{24-06-19}\\
+    % Design
+    \ganttgroup{Design}{05-06-19}{31-07-19}
+    \ganttcontingency[]{}{01-08-19}{08-08-19}\\
+    \ganttbar{Mathematical Model}{05-06-19}{15-07-19} \\
+    \ganttbar{Test Harness Concept}{01-07-19}{15-07-19}\\
+    \ganttbar{Ideation}{01-07-19}{31-07-19}\\
+    % Design and implementation
+    \ganttgroup{Implementation}{01-07-19}{18-08-19}
+    \ganttcontingency[]{}{19-08-19}{30-08-19}\\
+    % Testing
+    \ganttgroup{Testing}{15-07-19}{30-08-19}
+    \ganttcontingency[]{}{31-08-19}{07-09-19}\\
+    \ganttbar{Local Profiling and Benchmarking}{15-07-19}{19-08-19} \\
+    \ganttbar{Cluster Profiling and Benchmarking}{29-07-19}{30-08-19} \\
+    % Dissertation
+    \ganttgroup{Dissertation}{12-08-19}{26-09-19} \\
+    \ganttbar{Writing}{12-08-19}{26-09-19} \\
+    \ganttbar{Proof Reading and Editing}{5-09-19}{26-09-19}
+    \end{ganttchart}
     
     \caption{The Proposed Timeline of this Project}
     \label{fig:gantt_chart}
@@ -198,13 +196,23 @@ To this end, a decision was made to version control the code for the project usi
 
 With this in mind, LANL's SNAP repository was forked into a new repository located at \url{https://www.github.com/alshort/snap}. From here it will be cloned onto the local development machine and worked upon in a linear fashion, branching code were experimental code is to be created. Tags will be used to denote stable versions when they are created.
 
-% TODO: Methodology
+In terms of the specific source control methodology used, the project will be managed using an industry standard git branching model called ``git-flow''\cite{gitflow}. The model is illustrated in Figure \ref{fig:gitflow}.
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.4\textwidth]{images/gitflow.png}
+    \caption{Visual map of the git flow methodology}
+    \label{fig:gitflow}
+\end{figure}
+
+The methodology specifically involves a master branch maintained with only tagged releases, and a develop branch that all of the development is done on. Features and hotfixes are done on separate branches and merged back into their parent branch, with testing and release-candidate branches spawned off a fixed point on the develop branch. After complete testing and verification that everything works, they will get merged down into the master branch and a new version tagged.
 
 \subsection{Hardware and Software}
 
 Intel's port of SNAP relies on very particular tooling and platform decisions so most of the decisions with regards to testing and development tooling were already determined ahead of time. Furthermore, the decision to utilise CUDA as a platform to accelerate the performance of the mini-app also additional hardware requirements in an Nvidia-based GPU and accompanying drivers and development suites. If the modifications to the code base are successful, it is hoped to execute the software under both a local testing environment and a cluster computing environment at the University of Warwick's Department of Computer Science. Details of both of the set-ups follow.
 
-\subsubsection{Local Testing}
+\subsubsection{Local Development Platform}
+\label{subsubsec:projmgmt_localtesting}
 
 It is sufficient enough to be able to compile, execute, and test both the stock SNAP application as well as a GPU-accelerated alteration on a typical home desktop computer as of time of writing, given some particular brand-alignments/proprietary technologies are in mind when the machine is purchased or built. As such, hardware specifications of the home desktop computer used as the local development environment are as follows:
 
@@ -217,9 +225,40 @@ It is sufficient enough to be able to compile, execute, and test both the stock 
 
 This set-up allows for the compilation and testing of the current implementation of SNAP as well as a CUDA-accelerated version by both having the correct hardware that the software is and will be built for, while also being flexible enough in order to test the programs under a range of different inputs and constraints (such as having anywhere from 1 to 8 threads to run the program on). Whilst newer generation Intel processors would be even more ideal, such as the Intel® Core™ i9-7960X 16-core processor, the current hardware more than suffices enough to yield a satisfactory picture of the performance characteristics of the MPI and OpenMP implementation and limitations for this application.
 
-\subsubsection{Cluster Testing}
+\subsubsection{Computing Clusters}
+\label{subsubsec:clusters}
 
-\dots
+% Compute nodes: Lenovo NeXtScale nx360 M5 servers with 2 x Intel Xeon E5-2630 v3 2.4 GHz (Haswell) 8-core processors; 16 cores per node; 203 nodes; 3488 cores; 64 GB DDR4 memory per node / 4 GB per core
+% GPU nodes: 8 x NVIDIA Tesla K80 GPU cards; 2 GPU cards per node; 4 GPUs per node; 4 nodes; 64 GB DDR4 memory per node
+% Phi nodes: 8 x Xeon Phi 7120P; 2 Phi processors per node; 4 nodes; 64 GB DDR4 memory per node
+% Fat nodes: 128 x Intel Xeon E7-4809 v3 2.0 GHz Haswell cores; 32 cores per node; 4 nodes; 1 TB DDR3 memory per node; 1 x NVIDIA GRID K2 GPU per node
+% Interconnect: QLogic TrueScale InfiniBand
+% Storage: 0.5 PB GPFS
+% OS: CentOS 6.x
+% Workload Manager: Slurm
+% Commissioned: Oct 2015
+% Expected EOL: Oct 2019
+% Intended use: Parallel computing
+
+There are two local high-performance computing clusters available for use at the University of Warwick that are ideal to test the potential multi-GPU capabilities of the end solution. Tinis and Orac are both similar in capabilities but differ in terms of architecture and hardware - Orac being comprised of newer hardware whilst Tinis is expected to reach end-of-life in October 2019\cite{warwickclusters}.
+
+Tinis will be the focus of the cluster-based testing of the GPU-accelerated program because of more than capable hardware to prove or disprove the effectiveness of the final solution, in addition to additional familiarity with it due to the teachings of the CS402 course that is part of the MSc Computer Science program. There are many different types of nodes built into the cluster for handling a wide range of applications: compute nodes, GPU nodes, Phi nodes, and Fat nodes. The Phi and Compute nodes are purely computationally focused, so are not appropriate for the needs of this application. GPU nodes will only have the essential hardware in order to operate several graphics devices per node, which again is not appropriate, as this application will need a mixture of CPU and GPU power. Fat nodes have both high-power server processors and Nvidia graphics cards in each node, making them ideal. The specifications for them, as well as the crucial components of the system as a whole, are as follows:
+
+\begin{itemize}
+    \item 4 nodes, each composed of:
+    \begin{itemize}
+        \item 32 x Intel Xeon E7-4809 v3 2.0 GHz Haswell cores
+        \item 1TB DDR3 memory
+        \item 1 x NVIDIA GRID K2 GPU per node (CUDA capable)
+    \end{itemize}
+    \item Networking provided by QLogic TrueScale InfiniBand which supports many-gigabit per second transfer speeds between nodes.
+    \item CentOS 6.x as the underlying operating system. It's a robust, reliable distribution of Linux that incorporates all of the hardware in the cluster under one management system.
+    \item Slurm as the workload manager for submitting the program as a job to any of the available nodes.
+\end{itemize}
+
+In total, this provides, in the best-case scenario, a total of 128 traditional processing cores and 4 high-end graphical processing devices (each with two GK104 GPUs\footnote{As per the specification of the device: \url{https://www.nvidia.com/content/grid/pdf/GRID_K2_BD-06580-001_v02.pdf}}). A hybrid program that has multi-CPU and multi-GPU capabilities should be able to leverage a significant portion of the power provided should the threading and data orchestration work.
+
+Having multiple cores for both types of devices will allow for testing over a range of different configurations of traditional-only computation, and a varying amount of hybrid resources to find the optimal amount as well as any bottlenecks or trends in performance that might appear.
 
 \subsubsection{Software}
 
@@ -235,8 +274,7 @@ Working with an existing and established code base means adhering to existing to
     \item \textbf{pdflatex, bibtex}: Back-end programs for Visual Studio Code and latex-workshop to use to built \LaTeX and accompanying bibliography files. Errors and output are parsed and displayed in Visual Studio Code's in-built terminal for an enhanced and compact workflow.
 \end{itemize}
 
-\dots
-% ???
+Any additional programs used are merely an intrinsic feature of the operating system used. Features like \texttt{ssh} to remote into the Tinis computing cluster, \texttt{git} for fine-tuned version control, and other utilities are found on most development systems.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -283,9 +321,11 @@ One of the foremost scripts devised when the project started was a bash script t
 
 \subsubsection{Understanding the Input Data}
 
-% TODO
+Provided as part of the original SNAP repository is a folder called \texttt{qasnap}. In this folder resides several input and respective output files for quality assurance and testing. Executing the binary file as above and then comparing it line-by-line to the model output will highlight any discrepancies in the accuracy of the answer - any incorrect modification to the algorithm will flag as an inaccuracy. (The output files also output the timings of the execution but this will be guaranteed to be different on any machine.)
 
-Input data in particular format
+The input data is in a proprietary format in a whitespace-indented file. Due to the fact that the code is a proprietary piece of software developed for a specific task, it is understandable that the documentation is sparse in places, especially with regards to the meaning of these key-value pairs in context.
+
+LANL is in the United States of America, so direct support requests would be costly in terms of time and constrained by time zones, in addition to being potentially low-priority items. Mercifully, within Intel's C-based port contains useful commenting. Hence, alongside analysis and reading of the code, use and meaning of the input variables can be inferred from context for the most part. Figure \ref{table:input-data} shows several of the more essential items. 
 
 \begin{figure}[h]
     \centering
@@ -303,7 +343,7 @@ Input data in particular format
     \label{table:input-data}
 \end{figure}
 
-
+\dots
 
 \subsubsection{Execution}
 % different threads, input data, averaging
@@ -345,8 +385,7 @@ MPIR_Cart_create(58)......: Size of the communicator (1) is smaller than the siz
     \label{fig:snap-unsuccessful-run}
 \end{figure}
 
-% TODO
-\dots
+Ascertaining the characteristics, properties, and limitations of an existing code base before modification provides vital insight that can guide the rest of development. Using the limitation in terms of number of processes to run a sample execution on will guide the test plan in particular ()
 
 
 \subsection{\texttt{gprof}}
@@ -404,11 +443,21 @@ As previously mentioned in Section \ref{sec:introduction}, GPUs are architected 
 
 Each thread and block will have related positional indices that identify it within its parent container. This unique numerical identifier can be decomposed into N-dimensional coordinates (usually two or three dimensional) to perform arithmetic on a specific chunk of the data. Partitioning the data in this way allows for the vast parallelism as the programmer could submit an entire block or a small group of threads to the device for processing - there is a high level of fidelity granted to both data processing and transfer this way.
 
+Before particulars of the CUDA technology are discussed, it's important to note that code that is written for CUDA must be exclusively compiled by the \texttt{nvcc} compiler provided in the CUDA Toolkit. General-purpose CPU code still needs to be compiled by the standard C compiler that is a part of the distribution you are developing for. This could present issues when trying to use several specialised compilers in tandem to provide a solution that utilises multiple technologies together.
 
 \begin{itemize}
+    \item Sync and parallelisation: thread cooperation, events.
     \item Streams
-    \item Shared memory, thread cooperation etc.
+    \item Memory: Shared, Constant, Texture.
 \end{itemize}
+
+\subsubsection{Parallelisation and Synchronisation}
+
+\subsubsection{Streams}
+
+\subsubsection{Memory: Shared, Constant, Texture}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -425,13 +474,13 @@ Following the conceptual, pure model, potential designs are remarked upon with t
 \subsection{Mathematical Model}
 % TODO: Go over
 
-In order to get a gist of the amount of reasonable work the GPU could handle at once and estimates for the amount of time and data movement needed for the optimal implementation, a mathematical model was developed to help visualise and describe the interactions between adjacent cells in the approximated algorithm that SNAP uses. The following assumptions were made when developing this model:
+In order to understand the amount of reasonable work the GPU could handle at once, as well as estimates for the amount of time and data movement needed for the optimal implementation, a mathematical model was developed to help visualise and describe the interactions between adjacent cells in the approximated algorithm that SNAP uses. The following assumptions were made when developing this model:
 
 \begin{enumerate}
 
-\item The algorithm defines the problem space as a three-dimensionality discretised grid of cells, each with their own values and interactions with their neighbouring adjacent cells – this forms the core of the SNAP algorithm (it itself approximating a continuous algorithm).
+\item The algorithm defines the problem space as a three-dimensionally discretised grid of cells, each with their own values and interactions with their neighbouring adjacent cells. This forms the core of the SNAP algorithm (it itself approximating a continuous algorithm).
 
-\item The problem space is cubic with side $ n $ for ease of modelling. A generalisation to a cuboidal space with dimensions $ (x, y, z) $ can be abstracted from the cubic model later.
+\item The problem space is cubic with side $ n $ for ease of modelling. A generalisation to a cuboidal space with dimensions $ (x, y, z) $ can be abstracted from the cubic model at a later time. A cubic model is conceptually and mathematically more intuitive to model.
 
 \end{enumerate}
 
@@ -589,51 +638,117 @@ The primary goal of the test harness program is to act as a wrapper to execute e
 
 The \texttt{os} library handles difference between operating systems types to make the program as OS-agnostic as possible. Details such as file path separators, reading, and writing are handled through a common API. This allows for easy reading of an input or output file into the program for line-by-line parsing by several other routines and libraries used for the other stages and parts of the script. \texttt{os.remove} is used to delete the extraneous \texttt{gmon.out} files produced by profiling, while \texttt{os.path.join} is used to link scripted parts of paths together to find the output directory and particular files within it for averaging of execution times and comparison of the contents of the files - alongside the \texttt{open(\dots)} function from standard Python.
 
-High-precision timing is provided by the \texttt{time} library: specifically, the \texttt{time.time\_ns()} function. This function was introduced in Python 3.7 when nanoseconds resolution was introduced to the \texttt{time} library\footnote{\url{https://docs.python.org/3.7/whatsnew/3.7.html#pep-564-add-new-time-functions-with-nanosecond-resolution}}. Precision and accuracy is key when doing time-based profiling specifically, hence the require for the nanosecond time resolution. \texttt{time} previously only had the \texttt{time.time()} function which only returned the number of seconds since a certain date, i.e. Unix epoch time, and this was certainly not appropriate.
+High-precision timing is provided by the \texttt{time} library: specifically, the \texttt{time.time\_ns()} function. This function was introduced in Python 3.7 when nanoseconds resolution was introduced to the \texttt{time} library\footnote{\url{https://docs.python.org/3.7/whatsnew/3.7.html#pep-564-add-new-time-functions-with-nanosecond-resolution}}. Precision and accuracy is key when doing time-based profiling specifically, hence the require for the nanosecond time resolution. \texttt{time} previously only had the \texttt{time.time()} function which only returned the number of seconds since a certain date, i.e. Unix epoch time, and this was certainly not appropriate. 
 
-Detailed breakdowns are possible via \texttt{MPI\_Wtime()} and parsing the output values, but
+Detailed breakdowns via the use of \texttt{MPI\_Wtime()} to time the start and end times of the \texttt{dim3\_sweep} function and its parent subroutines in the call stack were experimented with. The cost of the intricate implementation of summing all the values from all of the MPI processes outweighed the benefit of the insight it would provide so this was not included in the final build. Use of \texttt{gprof} and other profilers provide similar functionality already.
 
 % TODO
-% Timing
-
 % Diffing outputs
 % Cleaning timestamps, separating time blocks
 
 \subsubsection{\texttt{test.py} API}
 \label{subsubsec:testapi}
-% TODO: Type up the -help output nicely.
+
+The test harness assumes the form of a program operated solely via the command-line. As such, there is a small set of commands and arguments associated with the various functionalities implemented and described in the design. A reference follows, all of which can be accessed via a terminal by issuing the command \texttt{python test.py -h}.
+
+\begin{itemize}
+    \item \textbf{setup}: Establishes the executing environment if not already configured.
+    \item \textbf{clean}: Cleans any superfluous or unnecessary files from profiling or previous runs that are otherwise cluttering up the working directory.
+    \item \textbf{run}: Executes one of the SNAP binaries in the project using the following arguments:
+    \begin{itemize}
+        \item \textbf{--cpu}: Makes the program choose the original binary file of the SNAP program. Must define either this flag or \textbf{--gpu}.
+        \item \textbf{--gpu}: Makes the program choose the modified, GPU-accelerated binary file of the SNAP program. Must define either this flag or \textbf{--cpu}.
+        \item \textbf{-n, --np}: Number of MPI processes to run with.
+        \item \textbf{-i, --fi}: Path to the input file to test the program with. 
+        \item \textbf{-o, --fo}: Path to write the output of the program to.
+    \end{itemize}
+    \item \textbf{analyse}: Performs a set of comparative analyses on the output of both CPU and GPU-enabled programs and produces a report and several files detailing the differences between the two sets of results.
+\end{itemize}
+
+The following global flags are also available for any command:
+
+\begin{itemize}
+    \item \textbf{-v, --verbose}: Increase the amount of output of the program for diagnostics.
+\end{itemize}
 
 
 \subsection{Modified SNAP Application}
 \label{subsec:imp_mod_snap}
 
-\begin{itemize}
-    \item Intel C MPI library
-    \item Externalised CUDA algorithms
-    \item nvcc and mpiicc
-\end{itemize}
+Developing the GPU-accelerations for SNAP first involved understanding how to integrate the CUDA algorithms into the existing MPI-based C implementation.
 
-Understanding the code\dots
+It was required to get both the \texttt{nvcc} and \texttt{mpiicc} to co-operate with one another, first and foremost.
 
-\subsubsection{Externalised CUDA Algorithms}
+Secondly, in terms of the process of development, was to attain an understanding of how best to integrate CUDA and MPI code together. An issue presented immediately is that of both the specialised compilers splitting the compilation process into stages. Each compiler will compile separately the specialised parts of the code that the standard C/C++ compiler does not know how to handle, whilst, either at the same time or after the first stage, it will call the standard, underlying compile to compile the rest of the source files. Afterwards, the specialised compile will link both compile non-standard and standard object files together into one executable binary file. Having both compilers do this process means that specialised MPI and CUDA code may not be able to easily co-exist in the same source code files without separation or careful orchestration of the build process.
+
 
 \subsubsection{\texttt{nvcc} and \texttt{mpiicc}}
+% TODO: 
+
+
+\subsubsection{Externalised CUDA Algorithms}
+% TODO:
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Testing}
 \label{sec:testing}
+% TODO:
+% Test plan
+% Local Testing + Results
+% Cluster Testing + Results
+% Analysis
+
+Verification of the modified software will take place in two stages on different sized platforms, as outlined in subsubsections \ref{subsubsec:projmgmt_localtesting} (Local Development Platform) and \ref{subsubsec:clusters} (Computing Clusters) so see if the code scales. The primary objective is to attempt to observe a time-decrease over every problem size in the best case scenario. Other objectives are:
 
 \begin{itemize}
-    \item Test Plan
-    \item Local Testing
-    \item Results
+    \item Ensuring the modified solution produces the same results as the original version is all circumstances.
+    \item A subsequent secondary performance increase is observed in multi-GPU environments. This is supplementary and not required, as CUDA has particular technologies associated with distributed work across multiple devices.   
 \end{itemize}
 
+There are a couple of main variables that would immediately effect the performance of both programs: the number of CPU threads, the amount of MPI processes, and the block and thread configurations of all CUDA-based kernel function calls. Several variations of these will be incorporated into the testing as they will show trends in parallelism that might not otherwise be observed if just a few fixed values are used. For instance, it may be the case that the algorithm doesn't scale well to higher numbers of processes or threads.
 
 \subsection{Test Plan}
+\label{subsec:testplan}
+
+To meet these objectives, the following test plan is laid out. Cluster-based testing may be omitted depending upon the results obtained during local testing - it may be the case that there is no apparent performance increase.
+
+Starting with local testing:
+\begin{figure}[!h]
+    \centering
+    \begin{tabular}{|l|l|}
+        \hline
+        Value 1 & Value 2 \\
+        \hline
+        1 & 2 \\
+        \hline
+    \end{tabular}
+    \label{table:localtestplan}
+\end{figure}
+
+Once, and only if, all of the testing has passed up until this point, we can proceed with cluster-based testing:
+
+\begin{figure}[!h]
+    \centering
+    \begin{tabular}{|l|l|}
+        \hline
+        Value 1 & Value 2 \\
+        \hline
+        1 & 2 \\
+        \hline
+    \end{tabular}
+    \label{table:clustertestplan}
+\end{figure}
+
+
+\subsection{Local Testing Results}
+\label{subsec:testing_local}
+
+\subsection{Cluster Testing Results}
+\label{subsec:testing_cluster}
 
 \subsection{Results}
+\label{subsec:results}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -642,6 +757,7 @@ Understanding the code\dots
 \label{sec:conclusion}
 
 \subsection{Limitations}
+\label{subsec:limitations}
 
 \begin{itemize}
     \item Very proprietary code base
@@ -652,8 +768,27 @@ Understanding the code\dots
 Over the course of the project, several issues or development quirks came to light in almost every aspect of the pipeline. Several key improvements that could be made to the project are presented below that could rectify these should subsequent or related projects take on a similar endeavour to the one presented in this report:
 
 \begin{itemize}
-    \item \textbf{Containerisation}: Docker container for a consistent operating environment\dots
-    \item \textbf{Standardised input data format}: Modernise the input data into a new format (e.g. JSON)\dots
+    \item \textbf{Texture memory}: One core feature in the CUDA library that wasn't explored due to learning the legacy code base, pursuing alternative designs, and other time constraints, is texture memory and the potential solution and performance benefits it could bring. Texture memory is specialised, cached memory that improves the memory bandwidth of a running parallel application by exploiting the spatial locality of the data in question, as in the following figure:
+    
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.4\textwidth]{images/TextureMemory.png}
+            \caption{Thread-based access of texture memory}
+            \label{fig:texmem}
+        \end{figure}
+    
+    For restricted transport-sweep problems over two dimensions, texture memory for the implementation of the grid would greatly speed up reads from memory. Each thread can operate a different directional sweep across the same cached texture, synchronise all of the threads, and aggregate the results back before transferring data back to main memory and the CPU. 
+
+    This approach has promise and would be ideal to pursue further for problems like SNAP.
+
+    \item \textbf{Containerisation}: An issue that appeared time and again during the initial investigation stages was the lack of other projects that had tied together MPI and CUDA as this project was seeking to do. Whilst not unusual for new and novel work, the lack of supporting documentation for this use-case proved to be a hinderance to time and slowed parts of the project down. A key piece of future work for this project in the future could be the establishment of a Docker container (a software housing that guarantees consistency of execution no matter what hardware it is run on) to hold binaries and settings for future release and other researchers to use the technologies together, alongside supporting documentation detailing lessons learned during the course of development.
+
+    \item \textbf{Standardised input data format}: Modernising and documenting the input data structure would help to vastly improve the fidelity and flexibility of the program by allowing faster and more intuitive changes to be made without prior knowledge. As it stands, the input format is very proprietary and analysis of the code, particularly \texttt{input.c}, is needed in order to interpret the variables and what they mean in context.
+    
+    Utilising a modern, global data standard such as JSON or XML over a whitespace dependent ordering would increase the usefulness of input files used for testing. Not only are there high-performance, fast, compact parsing libraries available for these formats but they're also intrinsically easier to document and modify.
+
+    \item \dots
+
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
