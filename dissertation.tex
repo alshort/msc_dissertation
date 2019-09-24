@@ -29,7 +29,7 @@
 
 \begin{document}
 \newgeometry{vmargin=2.25cm, hmargin=2.25cm}
-\title{Integrating CUDA into SNAP}
+\title{GPU-Based Acceleration of Miniapp Performance with CUDA}
 
 
 \author{\IEEEauthorblockN{Andrew Lamzed-Short}
@@ -205,7 +205,7 @@ In terms of the specific source control methodology used, the project will be ma
     \label{fig:gitflow}
 \end{figure}
 
-The methodology specifically involves a master branch maintained with only tagged releases, and a develop branch that all of the development is done on. Features and hotfixes are done on separate branches and merged back into their parent branch, with testing and release-candidate branches spawned off a fixed point on the develop branch. After complete testing and verification that everything works, they will get merged down into the master branch and a new version tagged.
+The methodology specifically involves a master branch maintained with only tagged releases, and a develop branch that all of the development is done on. Features and hot-fixes are done on separate branches and merged back into their parent branch, with testing and release-candidate branches spawned off a fixed point on the develop branch. After complete testing and verification that everything works, they will get merged down into the master branch and a new version tagged.
 
 \subsection{Hardware and Software}
 
@@ -242,7 +242,7 @@ This set-up allows for the compilation and testing of the current implementation
 
 There are two local high-performance computing clusters available for use at the University of Warwick that are ideal to test the potential multi-GPU capabilities of the end solution. Tinis and Orac are both similar in capabilities but differ in terms of architecture and hardware - Orac being comprised of newer hardware whilst Tinis is expected to reach end-of-life in October 2019\cite{warwickclusters}.
 
-Tinis will be the focus of the cluster-based testing of the GPU-accelerated program because of more than capable hardware to prove or disprove the effectiveness of the final solution, in addition to additional familiarity with it due to the teachings of the CS402 course that is part of the MSc Computer Science program. There are many different types of nodes built into the cluster for handling a wide range of applications: compute nodes, GPU nodes, Phi nodes, and Fat nodes. The Phi and Compute nodes are purely computationally focused, so are not appropriate for the needs of this application. GPU nodes will only have the essential hardware in order to operate several graphics devices per node, which again is not appropriate, as this application will need a mixture of CPU and GPU power. Fat nodes have both high-power server processors and Nvidia graphics cards in each node, making them ideal. The specifications for them, as well as the crucial components of the system as a whole, are as follows:
+Tinis will be the focus of the cluster-based testing of the GPU-accelerated program because of more than capable hardware to prove or disprove the effectiveness of the final solution, in addition to additional familiarity with it due to the teachings of the CS402 course that is part of the MSc Computer Science program. There are many different types of nodes built into the cluster for handling a wide range of applications: compute nodes, GPU nodes, Phi nodes, and Fat nodes. The Phi and Compute nodes are purely computationally focused, so are not appropriate for the needs of this application (in addition to Phi co-processors being deprecated from Intel's MPI library in the 2018 revision\cite{intelmpilib_whatsnew}). GPU nodes will only have the essential hardware in order to operate several graphics devices per node, which again is not appropriate, as this application will need a mixture of CPU and GPU power. Fat nodes have both high-power server processors and Nvidia graphics cards in each node, making them ideal. The specifications for them, as well as the crucial components of the system as a whole, are as follows:
 
 \begin{itemize}
     \item 4 nodes, each composed of:
@@ -318,6 +318,8 @@ One of the foremost scripts devised when the project started was a bash script t
     \label{fig:source_list}
 \end{figure}
 
+% TODO
+
 
 \subsubsection{Understanding the Input Data}
 
@@ -343,10 +345,10 @@ LANL is in the United States of America, so direct support requests would be cos
     \label{table:input-data}
 \end{figure}
 
+% TODO
 \dots
 
 \subsubsection{Execution}
-% different threads, input data, averaging
 
 Following successful compilation of the SNAP executable, several executions were performed under various environmental-constraints and input data to ascertain the current limitations and performance of the code base as it stands.
 
@@ -385,11 +387,10 @@ MPIR_Cart_create(58)......: Size of the communicator (1) is smaller than the siz
     \label{fig:snap-unsuccessful-run}
 \end{figure}
 
-Ascertaining the characteristics, properties, and limitations of an existing code base before modification provides vital insight that can guide the rest of development. Using the limitation in terms of number of processes to run a sample execution on will guide the test plan in particular ()
+Ascertaining the characteristics, properties, and limitations of an existing code base before modification provides vital insight that can guide the rest of development. Using the limitation in terms of number of processes to run a sample execution on will guide the test plan in particular (Subsection \ref{subsec:testplan}).
 
 
 \subsection{\texttt{gprof}}
-% Print out of "example" analysis
 
 The central issue of profiling parallelised code is that of ascertaining which functions calls are being called and calculating the total amount of time spent there (amongst obtaining other metrics and measurements of interest). In serial code, this task is easy. However, parallel code can be distributed over multiple nodes, processors, and/or threads depending on the resources available, the way the program works, and how the scheduling system decides to allocate work and timeslots. All of this must be orchestrated together, tracked, and aggregated to form one cohesive picture of what the application did on the execution of interest.
 
@@ -422,15 +423,17 @@ Now that a promising candidate for GPU-acceleration has been found in the \textt
 
 
 \subsubsection{Code Analysis}
+\label{subsec:inv_codeanalysis}
 
 % TODO
-\dots
+\texttt{dim3\_sweep}
 
 \subsection{Learning CUDA}
+\label{subsec:inv_learningcuda}
 
 Being the only way to execute general-purpose computational code on a[n Nvidia] GPU, it is important to comprehensively understand CUDA before delving into any source code modification.
 
-Alongside the content taught in the MSc CS402 High-Performance Computing module, another resource that was used to learn about CUDA was the book ``CUDA by Example'' (ISBN-13: 978-0-13-138768-3) by Jason Sanders and Edward Kandrot, two senior software engineers working on CUDA teams at Nvidia.
+Alongside the content taught in the MSc CS402 High-Performance Computing module, another resource that was used to learn about CUDA was the book ``CUDA by Example'' (ISBN-13: 978-0-13-138768-3) by Jason Sanders and Edward Kandrot\cite{sanders2010cuda}, two senior software engineers working on CUDA teams at Nvidia.
 
 As previously mentioned in Section \ref{sec:introduction}, GPUs are architected in such a way as to maximise the level of parallelism for a given operation over a given set of data at once (a.k.a. SIMD). ``CUDA by Example'' first talks about translating traditional code into kernel functions - small functions that transform some given data only - that operate on the device. Afterwards, concepts and tips are given to help the reader utilise more of the GPU's processing power by introducing the grid-thread-block model, as shown in Figure \ref{fig:gridblockthread}. This abstraction shows how the CUDA runtime divides and distributes work across the inner processors on the graphics device.
 
@@ -443,20 +446,84 @@ As previously mentioned in Section \ref{sec:introduction}, GPUs are architected 
 
 Each thread and block will have related positional indices that identify it within its parent container. This unique numerical identifier can be decomposed into N-dimensional coordinates (usually two or three dimensional) to perform arithmetic on a specific chunk of the data. Partitioning the data in this way allows for the vast parallelism as the programmer could submit an entire block or a small group of threads to the device for processing - there is a high level of fidelity granted to both data processing and transfer this way.
 
-Before particulars of the CUDA technology are discussed, it's important to note that code that is written for CUDA must be exclusively compiled by the \texttt{nvcc} compiler provided in the CUDA Toolkit. General-purpose CPU code still needs to be compiled by the standard C compiler that is a part of the distribution you are developing for. This could present issues when trying to use several specialised compilers in tandem to provide a solution that utilises multiple technologies together.
-
-\begin{itemize}
-    \item Sync and parallelisation: thread cooperation, events.
-    \item Streams
-    \item Memory: Shared, Constant, Texture.
-\end{itemize}
+Before particulars of the CUDA technology are discussed, it's important to note that code that is written for CUDA must be exclusively compiled by the \texttt{nvcc} compiler provided in the CUDA Toolkit. This is the only way that CUDA-C code can get compiled into proper device code. Every other piece of non-CUDA code is ignored by nvcc, instead defaulting to the underlying C++ compiler available on the system - careful consideration of this is needed when attempting to use CUDA in a C-based project. General-purpose CPU code for this project needs to be compiled by the standard C compiler that is a part of the distribution being developed on. This could present issues when trying to use several specialised compilers in tandem to provide a solution that utilises multiple technologies together.
 
 \subsubsection{Parallelisation and Synchronisation}
 
+CUDA at its core is a library for writing very high concurrency code. This immediately brings about problems of how to correct establish and execute the parallel workloads, as well as how to effectively synchronise the tasks to ensure there are no race conditions, overlapping and incorrect memory reads, and correct numerical calculation.
+
+The most powerful concept of CUDA is its use of kernel functions. These are regular subroutines affixed with the \texttt{\_\_global\_\_} keyword. This denotes that they are to be executed on the graphics device. Code decorated with the \texttt{\_\_device\_\_} keyword also only runs on device, and can only be called from \texttt{\_\_global\_\_} and \texttt{\_\_device\_\_} adorned code. This keyword is usually reserved for class-based constructs and supporting device code and algorithms. This kernel function gets executed on each CUDA thread, which each thread being a part of a block which in itself is within a grid (refer to Figure \ref{fig:gridblockthread}). Each grid and block have associated dimension vectors accessed via \texttt{gridDim} and \texttt{blockDim} respectively. Each block and thread have N-dimensional index vectors representing their position in their parent object, accessed with \texttt{blockIdx} and \texttt{threadIdx}.
+
+It's a common pattern to divide the execution of a kernel function $N$ ways for fine-grained control of parallelism. The thread id of the individual executing kernel function in two-dimensional space is defined by the following algorithm:
+
+\begin{lstlisting}[breaklines]
+    int tid = threadIdx.x + blockIdx.x * blockDim.x; 
+\end{lstlisting}
+
+With this calculated, in order to safely perform work, the programmer needs to check that \verb|tid < N|. If so, it's safe to execute the body of the kernel function as it won't cause any out-of-bounds exceptions or similar catastrophic errors.
+
+Often multi-threaded functions will reach a point where all of the threads need to meet at a common instruction to move forwards. This is often the case in map-reduce algorithms where it's important that all mapping functions have finished on every piece of partitioned data before the reduce stage can commence.
+
+For each thread in a block, it is possible to make faster threads hold for slower ones for full synchronisation by inserting the instruction \texttt{\_\_syncthreads()}, an in-built CUDA method, wherever it is possible for every thread to call it. It's vital every thread calls this is or else the program will hang on some threads waiting for others to synchronise when they never will.
+
 \subsubsection{Streams}
+
+Parallelism has a shortfall (or advantage, depending on context) that interleaved, asynchronous operations that execute non-sequentially have no guarantee to execute in any imposed order. Any permutation of all possible interleavings is possible.
+
+Streams are powerful CUDA constructs that allow for managed, controlled parallelism of CUDA functions. Having two streams will allow the same process to occur in down-times between different stages of execution of the same program. For instance, it will be possible for one stream to copy all of its required data into memory buffers and then execute its kernel function. At the same time as the first stream is executing its kernel function, stream 2 can be transferring its data into memory buffers as the data transfer bus is no longer being used by stream 1. This is inherently more useful as previously there would be a bottleneck of memory bandwidth with both memory transfers occurring at the same time.
+
+In the section ``Using Multiple CUDA Streams Effectively'' in ``CUDA by Example''\cite{sanders2010cuda}, the authors recommend, in order to properly schedule work for the GPU in a way that is non-blocking and works according to the flow and inherent premises of the GPU's scheduling algorithm, that like-for-like actions should be done one-after-the-other across all streams instead of by blocks of operations. This leads to a waterfall or cascading effect of operations across all streams. Overall, this method leads to higher performance as the GPU can batch work together and perform several similar operations in parallel.
+
+Concrete understanding and experimentation with this technology could lead to significant, orchestrated performance gains in SNAP also, if utilised correctly. If implemented incorrectly, it could easily bog the execution down. It may be the case that a concept as powerful as streams needs to be deeply integrated into the algorithm's design when the code base is young, or even from its inception, to have maximal effect.
+
 
 \subsubsection{Memory: Shared, Constant, Texture}
 
+Being largely used for rendering purposes for most of its existence means that the typical graphics card architecture comes with a host of different banks and types of memory and cache that accelerate and speed-up various graphics pipelines and calculations.
+
+Shared memory is one of the most basic forms of memory available in CUDA. Shared memory is named as such as it is a special type of memory that is shared across all threads in a block, but not across blocks. This allows for a form of communication between threads. The memory chips implementing shared memory reside physically on the GPU, so are on-chip rather than off-chip. This proximity to its use allows for conservation of memory bandwidth and low-latency access times.
+
+Shared memory is simply implemented by decorating a variable of choice with the \texttt{\_\_shared\_\_} keyword, as in:
+
+\begin{lstlisting}[breaklines]
+    __shared__ float cache[N];
+\end{lstlisting}
+
+Another performance-improving memory type that could be exploited for this project is \textit{constant memory}. In graphics pipeline, several different processing algorithms, threads, and arithmetic logic units (ALUs) require access to the same scene. Often the frame of the scene is processed and the data and elements within the actual modelled world space can be considered to be unmoving and hence static or constant. To prevent a bottleneck of data, the information required by many different operations can be stored in constant memory on the graphics device. This memory is cached for conservation of memory bandwidth and is treated differently to that of standard memory on the graphics card. Nvidia typically places 64KB of constant memory on graphics card - including the GeForce GTX 1070 card being utilised on the development machine\footnote{Information accurate at of time of writing} - so it is very much similar to the various levels of cache chips found on a traditional processor rather than being akin to RAM. This size of memory will have close proximity and high-bandwidth access to the ALUs on the graphics board. Constant memory is guaranteed by the CUDA runtime to not change for the lifetime of the execution of a kernel function. The one trade-off is this data becomes read-only, so careful management is needs to circumvent this.
+
+Placing data in constant memory is done by prepending the keyword \texttt{\_\_constant\_\_} to the variable in question. Assignment is done separately however. You must \texttt{malloc} or otherwise assign the data using standard C conventions and then call \texttt{cudaMemcpyToSymbol} to copy the data into the \texttt{\_\_constant\_\_} buffer denoted earlier. An invocation would look like this:
+
+\begin{lstlisting}[breaklines]
+    cudaMemcpyToSymbol(mem, temp_mem, sizeof(Data) * M);
+\end{lstlisting}
+
+Where \texttt{mem} is the constant memory, \texttt{temp\_mem} is the standard assigned variable, \texttt{Data} is a data type used for each element, and \texttt{M} is the total size of the collection of \texttt{Data}. It is important to note the restriction that \texttt{sizeof(Data) * M} must be $\leq$ \texttt{64KB}.
+
+Texture memory is a staple memory in graphical processing. It is an on-chip, cached, read-only back of memory that stores texture (bitmap graphics) data used by the texture units on modern graphics devices for sampling and transforming textures for application onto the surfaces of 3D models, as well as for lighting calculations. A particular property that texture memory has that constant memory does not is that of spatial locality of the data. Sampling a part of a texture often requires other threads accessing parts of the neighbouring data for their calculations. Figure \ref{fig:texmem} shows this access pattern.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{images/TextureMemory.png}
+    \caption{Thread-based access of texture memory}
+    \label{fig:texmem}
+\end{figure}
+
+Naturally, the access procedures and architecture of the memory chips and procedures are designed to use and exploit this. Hence, for two-dimensional data where the value of a cell might rely upon or otherwise update the values of neighbouring cells, utilising this type of memory would gain larger performance increases.
+
+Textures are implemented by the generic \texttt{texture<?>} class, where \texttt{?} is the type of data being stored. Data that requires transfer into the texture, now bound in texture memory, must be allocated on the device, so requires a \texttt{cudaMalloc} call. Transferring data into texture memory from the allocated memory is accomplished with the \texttt{cudaBindTexture} or \texttt{cudaBindTexture2D} (for two-dimensional textures) functions. The only difference between the two is the amount of adjacent neighbours and the texture's layout in memory\cite{wilt2013cuda}.
+
+Textures must be unbound after use with \texttt{cudaUnbindTexture}.
+
+Careful consideration of the use-cases of each type of memory for certain applications, especially ones that could usefully pertain to this project, will be a key consideration during the design stage as to which solutions are feasible and which aren't.
+
+
+\subsubsection{Multi-GPU Support}
+
+Finally, CUDA has built-in support for the utilisation of multiple graphics devices for a single program. Most high-performance computing clusters will use one or more graphics devices per node in their multi-node clusters, especially for modern applications.
+
+The host operating system will encompass all the collective nodes and resources in them under one umbrella to make the system look like one computer with the aggregated CPUs, GPUs, RAM, and other resources together, all unified. CUDA is able to discern the properties of devices running on the host computer. Calling these functions with multiple graphics devices will return a list of devices and their capabilities, each with their own ID and set of properties. In a homogeneous computing cluster, each node will have the same resources as thus there will be no difference as to what part of the program will be executed on which. However, in a heterogeneous computing environment, it will be advantageous to interrogate each device and allocate appropriate work to appropriate devices. For example, if a workload can only be split up into one large subtask and several supporting ones, a feasible assignment would be to put the fastest or largest device to the task of the large subtask and to distribute the smaller subtasks randomly across the remaining devices. It will all be down to the resources allocated to the submitted job or whatever is available.
+
+Using \texttt{cudaSetDevice(id)} allows for targeting of a thread's kernel function to a particular device. The rest of the function and clean-up procedure remain the same. Knowledge of devices is very proprietary and optimisations may be very specific. A viable design goal worth exploring could be to implement a smart device querying and work scheduling/partitioning system during the initialisation of the application. However, there is no guarantee that this generalised approach would yield significant advantages.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -557,6 +624,8 @@ time_r = \frac{recvs(i) * msg_r}{5 \times 10^8}
 Aggregating these over all slices, alongside an assumed small, constant kernel function calculation time $ C $ over $ cells(i) $ cells in the slices, yields the best-case calculation time for the current approach. From here, we can interleave all 8 octants for calculation at once (of course managing the number of streaming multi-processors, which, after a point, we'd need to vastly scale hardware or queue work) to improve our throughput. $C$ ultimately depends on the type of graphics card being used.
 
 \subsection{Ideation}
+\label{sec:ideation}
+% TODO:
 
 \begin{itemize}
     \item In-place replacement
@@ -615,6 +684,8 @@ To begin development, in addition to the installation of the necessary Ubuntu pa
 
 A proprietary device driver for Nvidia graphics cards on Ubuntu is required for CUDA code to run on the device. This is provided as part of the ``CUDA Toolkit'' that is freely available to all developers from Nvidia's Developer portal \url{https://developer.nvidia.com/cuda-downloads}. Installation is a matter of following the steps in the installer. It was important to note that the driver provided with the installer is the one guaranteed to work with the CUDA Toolkit, as opposed to the ones provided as part of the operating system vendor's software package ecosystem. Modification of the \texttt{PATH} and \texttt{LD\_LIBRARY\_PATH} to reference the \texttt{/usr/local/cuda-10.1/*}\footnote{The latest CUDA Toolkit version at time of development.} folders sets up the running environment properly and, with careful compilation, now allows for compilation and execution of CUDA code via the \texttt{nvcc} compiler.
 
+The operating graphics driver version provided with the CUDA Toolkit download was version 418.67. It had to be made absolutely imperative that this was the running version of the driver, as on Ubuntu there are multiple different versions one can install. The ones on the development machine were nvidia-driver-418, nvidia-driver-390, and an open-source X.Org X server display driver that the distribution defaults to. Sometimes on boot the system may not be able to load 418 for whatever reason so there are some instances where a reconfiguration under Software \& Updates $\rightarrow$ Additional Drivers and a restart required to get the correct driver running. At this time, it is unknown whether this issue is caused by a bug in the operating system or the underlying hardware. An incorrect running driver will either cause any attempt at running CUDA code to halt because the compiled device code cannot properly access the graphics device (the main job of the driver) or cause aberrant, incorrect results during calculations on the device.
+
 One last prerequisite is to have the Intel MPI libraries installed an operational on the development machine also. This is covered in Subsubsection \ref{subsubsec:inv_compilation}.
 
 
@@ -642,9 +713,33 @@ High-precision timing is provided by the \texttt{time} library: specifically, th
 
 Detailed breakdowns via the use of \texttt{MPI\_Wtime()} to time the start and end times of the \texttt{dim3\_sweep} function and its parent subroutines in the call stack were experimented with. The cost of the intricate implementation of summing all the values from all of the MPI processes outweighed the benefit of the insight it would provide so this was not included in the final build. Use of \texttt{gprof} and other profilers provide similar functionality already.
 
-% TODO
-% Diffing outputs
-% Cleaning timestamps, separating time blocks
+Output from the file is saved, immediately after execution, in a file with the following naming convention: \texttt{outNN\_cpu\_n4\_1}, where
+
+\begin{itemize}
+    \item \textit{NN} is the two-digit number corresponding to the respective input file from the \texttt{qasnap} directory.
+    \item \textit{cpu} is interchangeable with ``gpu'' depending upon the particular application that was run.
+    \item \textit{n4} denotes the number of MPI processes specified as a parameter.
+    \item \textit{1} denotes the id of the run. Subsequent runs of the same configuration will increment this value.
+\end{itemize}
+
+This nomenclature uniquely identified the executions and allows for rapid processing during analysis. All of the output files are stored in a separate directory called \texttt{out/} (which is automatically created if it doesn't exist).
+
+Post-processing of the output file generated from the SNAP program is done immediately after execution provided that no error was reported. If the program returned a non-zero exit code, then the program reports this and cleans up immediately afterwards. Post-processing involves stripping the output of the time stamp at which the execution occurred because this is unnecessary information that gets flagged up by comparison programs and algorithms, and splitting of the output file into two halves. The first half contains only the values associated with the numerical calculation and simulation, and the second half, which gets stripped from the original output file and written to a new file of the same name except with the suffix \texttt{.timing}, contains the subroutine and overall times of the execution. This bifurcation was done to simplify comparisons to only the like-for-like data. Numerical values output by the software can instantly be compared (give or take minor affordance in terms of rounding and such) to gauge the accuracy of the solution, whilst the separate timing information can be utilised in a separate program (or manually) to garner an appreciation of the difference in performance between the two programs.
+
+Automatic creation of the output file and its name is a key advantage of the harness program's automations. Using a standardised name and processing procedure allows for substantially easier further processing, validation, and parsing.
+
+% compare
+Readily available tools for identifying the similarity between two files is axiomatically needed as manual comparison of the output files the SNAP application gives are detailed. Any inconsistencies or numerical changes might be hard to spot.
+
+A \texttt{compare} command was added to the API of the test harness as a post-execution analysis tool to perform a line-by-line comparison of the two input files specified. The calculation in the final version presents a simplified, line-by-line comparison algorithm that count the amount of lines that differ and offers this as a percentage as its output. 0\% change is identical, any percentage difference under 10\% is near-identical, and any other percentage is different.
+
+If the user specifies the \texttt{-v} option with the \texttt{compare} tool, the application will call the tried-and-tested \texttt{diff} application that is bundled as standard as part of most Linux distributions. This invocation to \texttt{diff} uses the \texttt{-s} and \texttt{-y} parameters to show a side-by-side comparison with the differences between the two highlighted, and gets the program itself to verify whether or not the files are identical as a verification to the test harness's calculation.
+
+% average
+Tabulation of timing data for comparison later on during the analysis process needs to take into account variations between runs. The \texttt{average} command was introduced to average the overall time taken per group of related output files (the relation being that the output files all have the same configuration). The average time is simply extracted from the populated \texttt{testing.csv} data file that the \texttt{test} program maintains and appends to after each invocation of the SNAP binary through its run command, and then divided by the number of runs that particular configuration has been executed.
+
+This averaged value is far more representative of the overall time taken for the program with given input and parameters. This value is what will be used in the final testing. If more fine-grained comparison of the timing data is needed, \texttt{test compare} can be invoked on two \texttt{.timing} files to see the differences.
+
 
 \subsubsection{\texttt{test.py} API}
 \label{subsubsec:testapi}
@@ -660,9 +755,20 @@ The test harness assumes the form of a program operated solely via the command-l
         \item \textbf{--gpu}: Makes the program choose the modified, GPU-accelerated binary file of the SNAP program. Must define either this flag or \textbf{--cpu}.
         \item \textbf{-n, --np}: Number of MPI processes to run with.
         \item \textbf{-i, --fi}: Path to the input file to test the program with. 
-        \item \textbf{-o, --fo}: Path to write the output of the program to.
+        \item \textbf{--clean}: Removes profiling data and extraneous information and files from previous runs.
     \end{itemize}
-    \item \textbf{analyse}: Performs a set of comparative analyses on the output of both CPU and GPU-enabled programs and produces a report and several files detailing the differences between the two sets of results.
+    \item \textbf{average}: Calculates the average time of executions meeting a particular configuration.
+    \begin{itemize}
+        \item \textbf{-i}: Name (not path) of the input file used that was passed into the SNAP application.
+        \item \textbf{-n, --np}: Number of processes the execution ran with
+        \item \textbf{--cpu}: Whether the execution was run with the original version of SNAP. Mutually-exclusive option with \textbf{--gpu}.
+        \item \textbf{--gpu}: Whether the execution was run with the modified version of SNAP. Mutually-exclusive option with \textbf{--cpu}.
+    \end{itemize}
+    \item \textbf{compare}: Performs a line-by-line comparison of two input output files from previous runs. Return a percentage difference of the two. Any close to 0\% are reported as ``identical'', less than 10\% ``near-identical'', and anything else is ``different''.
+    \begin{itemize}
+        \item \textbf{--f1}: Name (not path) of output file to compare.
+        \item \textbf{--f2}: Name (not path) of second output file to compare to first.
+    \end{itemize}
 \end{itemize}
 
 The following global flags are also available for any command:
@@ -681,13 +787,56 @@ It was required to get both the \texttt{nvcc} and \texttt{mpiicc} to co-operate 
 
 Secondly, in terms of the process of development, was to attain an understanding of how best to integrate CUDA and MPI code together. An issue presented immediately is that of both the specialised compilers splitting the compilation process into stages. Each compiler will compile separately the specialised parts of the code that the standard C/C++ compiler does not know how to handle, whilst, either at the same time or after the first stage, it will call the standard, underlying compile to compile the rest of the source files. Afterwards, the specialised compile will link both compile non-standard and standard object files together into one executable binary file. Having both compilers do this process means that specialised MPI and CUDA code may not be able to easily co-exist in the same source code files without separation or careful orchestration of the build process.
 
-
 \subsubsection{\texttt{nvcc} and \texttt{mpiicc}}
-% TODO: 
 
+As discussed earlier, \texttt{nvcc} and \texttt{mpiicc} are both non-standard code specific compilers that defer to the standard C/C++ compiler once the specialised code they target have been compiled into object code. An issue lies in which compiler either one looks for: \texttt{nvcc} looks for the standard C++ compiler, \texttt{mpiicc} looks for the standard C compiler. This discrepancy caused an issue when trying to link the compiled object files of both compilers together.
 
+During the investigation, the provided Makefile was complete and able to compile the existing project. A few modifications were made to the parameters passed to \texttt{mpiicc}. The full list ended up being \texttt{-mkl -O3 -std=c11 -xAVX -fopenmp -parallel -DUSEMKL -DUSEVML -pg -g}. The targeted C version (\texttt{-std}) was updated to c11, \texttt{-pg} was added to allow \texttt{gprof} to profile the code, and \texttt{-g} to allow for increased debugging.
+
+For the new \texttt{.cu} files, two new variables were added to define the compiler and flags for these file-types:
+
+\begin{lstlisting}[breaklines]
+GPUCC=nvcc
+GPUFLAGS=-arch=compute_61 -code=sm_61 -m 64 -rdc=true -dc -dlink
+\end{lstlisting}
+
+\texttt{nvcc} is the compiler, and the meaning of each of the parameters is:
+
+\begin{itemize}
+    \item \textit{-arch=compute\_61} - Specifically targets the GTX 1070 and related device architecture.
+    \item \textit{-code=sm\_61} - Defines architecture to optimise and generate device code for, in this case the GTX 1070 and related devices. 
+    \item \textit{-m 64} - Targets 64-bit architecture.
+    \item \textit{-rdc=true} - Enables generation of relocatable device code.
+    \item \textit{-dc} - Compiles each \texttt{.c} and \texttt{.cu} that contains any relocatable device code.
+    \item \textit{-dlink} - Links object files with relocatable device code into executable device code.
+\end{itemize}
+
+In addition to the following compilation rule that simply takes \texttt{.cu} files as dependencies and compiles them, using the above variables, into \texttt{.o} object files:
+
+\begin{lstlisting}[breaklines]
+%.o: %.cu
+    $(GPUCC) $(GPUFLAGS) -c $< -o $@
+\end{lstlisting}
+
+Separate \texttt{.cu} files are used to separate and easily compile CUDA code from existing MPI code (this is discussed further in the next section).
+
+Linking these files together involves a new compilation rule, shown in Figure 1ref{fig:nvccmpiicc}, using \texttt{nvcc} as the linking compiler as it is best suited to integrating the more non-standard CUDA code (MPI code is closer to standard C). It calls \texttt{mpiicc} as the backup compiler, which, in turn, will defer to the standard C compiler on the machine.
+
+\begin{figure}[!h]
+    \centering
+    \begin{lstlisting}[breaklines]
+$(A_TARGET): $(A_OBJS)
+    $(GPUCC) -arch=compute_61 -code=sm_61 -m 64 -std=c++11 -ccbin=$(CC) -Xcompiler "-mkl" $(LDFLAGS) $(LIBS) $^ -o $@
+    \end{lstlisting}
+    \caption{New make rule for linking MPI and CUDA}
+    \label{fig:nvccmpiicc}
+\end{figure}
+
+The latest C++ variant is used, alongside targeting of the 64-bit architecture and the GTX 1070-series (and family) graphics device architecture. New here is the inclusion of \texttt{-ccbin} which points to \texttt{mpiicc} as the compiler to refer to. In order to correctly compile with this sub-compiler, the \texttt{-Xcompiler} flag is needed to build with the Intel MKL library. Fortunately, this is the only thing that's needed to correctly use this. Relevant linker flags for non-standard linking libraries (\texttt{-L/usr/local/cuda/lib64}) as well as CUDA linking variables (\texttt{-lcuda -lcudart}) are used to link all of the object files together into an executable binary. Taken together, this successfully produces a working binary that utilises both CUDA and MPI and OpenMP.
+
+% TODO
 \subsubsection{Externalised CUDA Algorithms}
-% TODO:
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -718,9 +867,22 @@ Starting with local testing:
     \centering
     \begin{tabular}{|l|l|}
         \hline
-        Value 1 & Value 2 \\
+        Input File & Procs \\
         \hline
-        1 & 2 \\
+        in01 & 4 \\
+        in02 & 6 \\
+        in03 & 6 \\
+        in04 & 4 \\
+        in05 & 4 \\
+        in06 & 4 \\
+        in07 & 8 \\
+        in08 & 8 \\
+        in09 & 2 \\
+        in10 & 4 \\
+        in11 & 4 \\
+        in12 & 4 \\
+        in13 & 4 \\
+        in14 & 1 \\
         \hline
     \end{tabular}
     \label{table:localtestplan}
@@ -768,14 +930,9 @@ Once, and only if, all of the testing has passed up until this point, we can pro
 Over the course of the project, several issues or development quirks came to light in almost every aspect of the pipeline. Several key improvements that could be made to the project are presented below that could rectify these should subsequent or related projects take on a similar endeavour to the one presented in this report:
 
 \begin{itemize}
-    \item \textbf{Texture memory}: One core feature in the CUDA library that wasn't explored due to learning the legacy code base, pursuing alternative designs, and other time constraints, is texture memory and the potential solution and performance benefits it could bring. Texture memory is specialised, cached memory that improves the memory bandwidth of a running parallel application by exploiting the spatial locality of the data in question, as in the following figure:
+    \item \textbf{Texture memory}: One core feature in the CUDA library that wasn't explored due to learning the legacy code base, pursuing alternative designs, and other time constraints, is texture memory and the potential solution and performance benefits it could bring. Texture memory is specialised, cached memory that improves the memory bandwidth of a running parallel application by exploiting the spatial locality of the data in question, as in Figure \label{fig:texmem} shown earlier.
     
-        \begin{figure}[H]
-            \centering
-            \includegraphics[width=0.4\textwidth]{images/TextureMemory.png}
-            \caption{Thread-based access of texture memory}
-            \label{fig:texmem}
-        \end{figure}
+        
     
     For restricted transport-sweep problems over two dimensions, texture memory for the implementation of the grid would greatly speed up reads from memory. Each thread can operate a different directional sweep across the same cached texture, synchronise all of the threads, and aggregate the results back before transferring data back to main memory and the CPU. 
 
