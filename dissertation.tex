@@ -42,9 +42,9 @@
 
 \begin{abstract}
 
-Mini-applications (``miniapps'') are small-scale, representative versions of large-scale pieces of scientific- or engineering-focused software that seek to model the performance of an algorithm or program without the associated overhead of executing the larger program. This project seeks to examine the effects of altering the code base of one such miniapp called ``SNAP'' from utilising only traditional processing cores to incorporating a mixture of traditional computation and offloading applicable workloads to graphical processing cores with the aim to leverage their increased throughput and capabilities for single instruction, multiple data (SIMD) assignments. Ultimately the hope is to examine the performance of the resulting program to ascertain whether the modification is beneficial to the runtime of the algorithm, justifying if this change can be reflected in the larger-scale software SNAP represents.
+Mini-applications (``miniapps'') are small-scale, representative versions of large-scale pieces of scientific- or engineering-focused software that seek to model the performance of an algorithm or program without the associated overhead of executing the larger program. This project seeks to examine the effects of altering the code base of one such miniapp called ``SNAP'' from utilising only traditional processing cores to incorporating a mixture of processing cores and graphics devices. Aiming to offload applicable workloads to graphical hardware in order to leverage their increased throughput and capabilities for single instruction, multiple data (SIMD) assignments. The hope is to examine the performance of the resulting program to ascertain whether the modification is beneficial to the runtime of the algorithm, justifying if this change can be reflected in the larger-scale software SNAP represents.
 
-To this end, this dissertation details a brief description to the field of High-Performance Computing (``HPC''), along with an introduction and description of the new field of miniapps. Overall aims of the project are outlined before related work in the field of miniapps, application modelling, and other HPC disciplines and projects are presented. This leads into an investigation into the existing SNAP code base and architecture, a thought out and concise approach to and overall design to a potential solution to the problem in hand, with the process finalised by a documented explanation as to the actual implementation. To conclude the report, a testing strategy and results are discussed and analysed, with concluding remarks as to the efficacy and efficiency of the project ending the report.
+To this end, this dissertation details a brief description to the field of High-Performance Computing (``HPC''), along with an introduction and description of the new field of miniapps. Overall aims of the project are outlined before related work in the field of miniapps, application modelling, and other HPC disciplines and projects are presented. This leads into an investigation into the existing SNAP code base and architecture, a thought out and concise approach and overall design to a solution to this structural challenge, with the process finalised by a documented explanation of the actual implementation. To conclude the report, a testing strategy and results are discussed and analysed, with concluding remarks as to the efficacy and efficiency of the project.
 
 \end{abstract}
 
@@ -155,7 +155,8 @@ Time constraints are always a pressing and important factor to consider when sta
     \ganttmilestone[inline=false]{}{31-05-19}
     \ganttmilestone[inline=false]{}{01-06-19}
     \ganttmilestone[inline=false]{}{05-06-19}
-    \ganttmilestone[inline=false]{}{08-06-19}\\
+    \ganttmilestone[inline=false]{}{08-06-19}
+    \ganttmilestone[inline=false]{}{05-09-19}\\
     % Investigation
     \ganttgroup{Investigation}{01-05-19}{24-06-19}
     \ganttcontingency[]{}{25-06-19}{02-07-19}\\
@@ -299,6 +300,8 @@ In the main repository, various presentations and documentation are provided tha
 
 Intel chose to target the C-based port of SNAP towards Intel-based CPUs, hence the decision, as outlined in section \ref{sec:projectmgmt}, to use a machine to locally test the program having an Intel Core i7-6700K CPU. This decision was made due to the original port writers' knowledge of the benefits that the architecture and proprietary improvements could bring to a strictly MPI-based implementation of SNAP. One such proprietary optimisation is the \texttt{-xAVX} compiler flag that was introduced from the ``Sandy Bridge''-line of Intel CPUs onwards that introduced the option to include new instructions (and expanded old instructions) that allowed for operations - specifically fused multiply-accumulate (FMA) operations - for the execution of some SIMD workloads on floating-point data\cite{KanterIntel}. This operation is similar in principle and execution to the SIMD nature of data manipulation on a standard GPU but cannot compare to the speed or scale of that which is obtainable on streaming multi-processors.
 
+One of the main reasons Intel chose C was to utilise their Math Kernel Library (MKL) and Vector Machine Library (VML) of optimised mathematical functions for execution on Intel processors. \texttt{mpiicc} can be compiled with two flags, \texttt{-DUSEMKL} and \texttt{-DUSEVML}, to state whether those libraries are to be used and \texttt{\#ifdef} directives in the code can defines code blocks that utilise the provided functions. \texttt{\#else} directives provide a standard C-based backup implementation of the code if the program is to be targeted to other architectures.
+
 GNU make is used to compile all facets of the program, with the main compiler being \texttt{mpiicc}. Whilst \texttt{gcc} is typically used to compile regular, standard C and C++ code, \texttt{icc} is Intel's C++ compiler that was built in order to specifically optimise code to run on Intel-created architectures. This includes optimisations for how memory is specifically accessed, how thread-based parallelisation is handled with regards to the OpenMP specification, data layout improvements, and support for modern iterations of C++ language specifications\footnote{\url{https://software.intel.com/en-us/c-compilers}}. \texttt{mpiicc} is an HPC-specific version of the \texttt{icc} compiler that utilises message-passing library built for use with the \texttt{icc} program (in particular its C-based capabilities). This library implements the Message Passing Interface (MPI) specification version 3.1\cite{intel-mpi-ref} to allow for bi-directional inter-process communication, regardless of how those processes are mapped to the underlying hardware.
 
 Whilst provided in an operational state, this provision is predicated on the correct resources and dependencies being installed and linked up on the host system. Installation of Intel's MPI libraries is straight-forward but ensuring that they will operate correctly when called can be an issue.
@@ -318,7 +321,7 @@ One of the foremost scripts devised when the project started was a bash script t
     \label{fig:source_list}
 \end{figure}
 
-% TODO
+There are optional environmental variables that can also be set to exhibit fine-tuned control over the execution profile of the application. Mainly \texttt{OMP\_NUM\_THREADS} to control the maximum number of threads OpenMP can utilise. This value can either default to 1 (most of the time) or the maximum number of threads available to the system.
 
 
 \subsubsection{Understanding the Input Data}
@@ -339,14 +342,21 @@ LANL is in the United States of America, so direct support requests would be cos
         \texttt{npey} & Number of parallel processing inputs in the y direction. \\
         \texttt{npez} & Number of parallel processing inputs in the z direction. \\
         \texttt{ndimen} & Total number of dimensions to the grid. \\
+        \texttt{nnested} & Boolean defining whether OpenMP nested threading is active or not.\\
+        \texttt{nx} & x dimension of the input grid. \\
+        \texttt{ny} & y dimension of the input grid. \\
+        \texttt{nz} & z dimension of the input grid. \\
+        \texttt{ichunk} & Number of chunk that the i/x direction is divided into. \\
+        \texttt{ng} & Number of groups used - introduced by the discretised version of the algorithm. \\
         \hline
     \end{tabular}
     \caption{Important variables defined in the input data}
     \label{table:input-data}
 \end{figure}
 
-% TODO
-\dots
+A mark against the source code is that the variable naming convention is too terse for them to be useful and intuitive. The commenting in every file makes up for some of this but ultimately is not a replacement.
+
+The input data is broadly categorised into three main sections: parallelism controlling variables, dimensionality and initial condition variables, and fine-tuning and control parameters. The first section allows for control of the application to run on different types of hardware. The second section defines size and initial settings but is also flexible in that it can control whether the simulation is performed in two or three dimensions. Whilst this flexibility is great for a general-purpose application, it makes the algorithms and flow more complicated which could make implementation harder. The last section need not be adjusted except in circumstances where the data is the subject being experimented with.
 
 \subsubsection{Execution}
 
@@ -425,8 +435,17 @@ Now that a promising candidate for GPU-acceleration has been found in the \textt
 \subsubsection{Code Analysis}
 \label{subsec:inv_codeanalysis}
 
-% TODO
-\texttt{dim3\_sweep}
+Looking closely at the \texttt{dim3\_sweep.c} code revealed several features about its workings but also highlighted potential trouble areas of development.
+
+Some code in Intel's port was commented out due to compatibility or developmental reasons. Most OpenMP directives were commented out as the original authors could not guarantee they would work on all compilers. Reintroducing these, setting the correct variables, and comparing the time profiles to that of the MPI-only version led to the observation that the hybrid approach was slower than the stock approach on the local development machine. These directives were removed again as a consequence of this.
+
+An abundance of macros introduced by the authors to streamline array and struct data indexing and referencing proved to be a hindrance to the code's readability. Fortunately, in-line macro-replacement is one of the stages of \texttt{gcc}'s pre-processing stage of code compilation. This is achieved with the \texttt{-E} parameter, alongside defining an output file or redirecting the standard output of the shell into a file for examination. The entire pre-processing stage is ran however, meaning the output is some 8000-13000 lines long after all of the library includes. The body of the source code file of interest will always be at the tail end of the file and so simple to extract.
+
+\texttt{dim3\_sweep} is a very interconnected class. It has a relation to most data type definitions which originate and are populated is many disparate places in the code base. Most of the parameters to the method are used routinely in the code, which itself takes the form of a double-nested for loop that performs the diagonal transport sweeps across the data, with many conditionals and smaller, inner for loops controlling variable values.
+
+The shallow nature of the algorithm as it stood didn't immediately lend itself to loop unrolling. A decision was made to attempt to do a partial rewrite of the algorithm in CUDA as the most likely successful integration of CUDA code.
+
+Further up the call stack is \texttt{octsweep} which simply calculates the current \texttt{ichunk} and octant index for the sweep to run on, and \texttt{sweep} one step further up with sequentially calls \texttt{octsweep} for all octants and groups defined at the start. \texttt{sweep} shows promise as a parallelisable higher level to accommodate loop unrolling further down. Finding some way to cascade or overlap the execution of the octants would be beneficial also.
 
 \subsection{Learning CUDA}
 \label{subsec:inv_learningcuda}
@@ -539,7 +558,6 @@ Following the conceptual, pure model, potential designs are remarked upon with t
 
 
 \subsection{Mathematical Model}
-% TODO: Go over
 
 In order to understand the amount of reasonable work the GPU could handle at once, as well as estimates for the amount of time and data movement needed for the optimal implementation, a mathematical model was developed to help visualise and describe the interactions between adjacent cells in the approximated algorithm that SNAP uses. The following assumptions were made when developing this model:
 
@@ -560,7 +578,7 @@ In order to understand the amount of reasonable work the GPU could handle at onc
 
 Given these assumptions, we aim to derive the total number of communications between cells in the grid per iteration and how much work this equates to and how much can be parallelised at each stage.
 
-There are $ 8 $ vertices of a cube so $ 8 $ octants to perform the sweep over. Each sweep is divided up into diagonal slices, shown in Figure \ref{fig:3dsweepslice}, of which there are $ (x + y + z) - 1 $ of them ($ 3n - 1 $ in this model). A key point to note is the dependency in each sweep of a slice on the slice before as the direction of the sweep is linear and calculations rely upon previous ones\footnote{As described in the documentation of the SNAP algorithm in their GitHub repository - \url{ https://github.com/lanl/SNAP/blob/master/docs/SNAP-overview-presentation-2015.pdf}}, and each combined sweep of all octants, after all results being collated, forms the basis of the next sweep.
+There are $ 8 $ vertices of a cube and thus $ 8 $ octants to perform the sweep over. Each sweep is divided up into diagonal slices, shown in Figure \ref{fig:3dsweepslice}, of which there are $ (x + y + z) - 1 $ of them ($ 3n - 1 $ in this model). A key point to note is the dependency in each sweep of a slice on the slice before as the direction of the sweep is linear and calculations rely upon previous ones\footnote{As described in the documentation of the SNAP algorithm in their GitHub repository - \url{ https://github.com/lanl/SNAP/blob/master/docs/SNAP-overview-presentation-2015.pdf}}. Each combined sweep of all octants, after all results being collated, forms the basis of the next sweep.
 
 The first $ n $ slices of the grid are comprised of the sum of the first $ n $ triangular numbers’ (i.e. $ 1, 3, 6, 10, 15\dots $)\footnote{Sequence A000217 in the ``On-line Encyclopedia of Integer Sequences'' (\url{https://oeis.org/A000217})}, worth of cells, with the final $ n $ slices having the same number also (just in reverse order). $ n - 2 $ slices exist between the 2 triangular-based pyramids formed from the previous step, allowing us to develop a function for the first $ m = n + \frac{n - 2}{2} $ slices, and mirror it to get the number of cells in any slice of the grid.
 
@@ -625,12 +643,57 @@ Aggregating these over all slices, alongside an assumed small, constant kernel f
 
 \subsection{Ideation}
 \label{sec:ideation}
-% TODO:
+
+Analysis of the code and consideration of the mathematical model behind which the best-case scenario would occur led to a few initial ideas on how the solution would be formed. Several other concepts emerged as development progressed also that are worth noting.
+
+
+\subsubsection{One-to-one CUDA Conversion}
+
+Foremost was the idea that the original SNAP implementation could be converted and adapted in a straight-forward manner to utilise kernel functions where existing loops and OpenMP directives were used.
+
+Intel integrated a tight and fast parallelisation set-up into their port of C that could span multiple processes and threads without a problem. Distributing the work as they did, deferring segments of the sub-workloads to the GPU seemed like an obvious choice.
+
+This would take place at the lowest levels of the call stack, in the slowest subroutines mostly, to accelerate the performance, as the program can only be as fast as its slowest component.
+
+
+\subsubsection{Partial Rewrite}
+
+Whilst similar in concept to a one-to-one conversion to CUDA, this approach is slightly different in that any potential candidates for CUDA conversion are extracted and recoded in a new file and their original invocation is replaced by a call to the new code. This system is similar in practice to how a regular programmer would refactor a large legacy code base.
+
+A guiding principle here would be to extract semantically compartmentalised components to break them out for documentation and separation purposes. A visual inspection of the original SNAP code base shows areas of tight coupling and lack of documentation that could build-up to make the project cumbersome to modify or update further into the future.
+
+The aim with this design would be to extract parts of the \texttt{dim3\_sweep} subroutine into kernel functions and device code in a separate \texttt{.cu} file to make it easier to understand and read, and to simplify the CUDA code into small, logical parts. Kernel functions ideally should be small in nature as the whole architecture of streaming multi-processors on graphics cards is to run many small kernel functions in parallel for fast, efficient throughput of data.
+
+
+\subsubsection{Loop Unrolling}
+
+Supplementary research stemming and overflowing from the research and investigation phases revealed work and advice by Nvidia and works about a technique called ``loop unrolling''. Volkov et al\cite{volkov2011unrolling} showed that flattening out the innermost nested loop structure whilst keeping the outermost one parallelised often has the effect of improving the performance of applications. Stone at al\cite{stone2007accelerating} showed that unrolling a central, deeply nested part of their algorithm led to a speed up of double. This additional performance arises as a result of given each individual thread more work to perform. Ultimately, this has the effect of reducing latency in other areas such as the amount of synchronisation points and data transfer between processes.
+
+The overall architecture of the transport sweep algorithm in SNAP is as follows:
 
 \begin{itemize}
-    \item In-place replacement
-    \item Loop flattening
+    \item \textit{sweep.c}
+    For each octant and group in the ndimen-dimensional grid:
+    \begin{itemize}
+        \item \textit{octsweep.c}
+        Determine which octant and chunk is being calculated
+        \begin{itemize}
+            \item \textit{dim3\_sweep.c}
+            Double-nested for loop calculating the flux
+        \end{itemize}
+    \end{itemize}
 \end{itemize}
+
+Inherently there looks to be an ``unrollable'' structure to this algorithm. This hinges on how amenable \texttt{dim3\_sweep} is to being flattened and decomposed into parts.
+
+\subsubsection{Rewrite}
+
+The only way to guarantee harmony and maximum performance is tight integration of CUDA alongside MPI from the code base's inception. Designing for a particular technology allows for every advantage and facet of the library to be used and paired or timed well with others.
+
+Division of work in the existing SNAP program might change noticeably if the MPI schema were accommodating distribution of work to one or more GPUs per node as opposed to just processors.
+
+This design, whilst comprehensive and conceptually the design with the highest overall obtainable performance increase, was discounted after a small period of consideration due to inherent time constraints.
+
 
 \subsection{Test Harness}
 
@@ -691,7 +754,6 @@ One last prerequisite is to have the Intel MPI libraries installed an operationa
 
 \subsection{Test Harness}
 \label{subsec:imp_testharness}
-% TODO: Finish
 
 Developed in conjunction with the modified SNAP application (Subsection \ref{subsec:imp_mod_snap}), the test harness program is a versatile complementary program that aims to help achieve the objectives of the project by providing the following features:
 
@@ -705,7 +767,7 @@ For this supplementary program, Python version 3.7+ will be the main implementat
 
 Three of the main APIs utilised in the program that meet most of the needs of the above requires are the \texttt{os}, \texttt{subprocess}, and \texttt{time} libraries found in Python's standard set of core libraries. These libraries provide tight, low-level, flexible interfaces for working with the host operating system in addition to providing high-precision timing facilities for program comparison and profiling. Further advantages are discussed as the implementation details of each point are outlined in turn.
 
-The primary goal of the test harness program is to act as a wrapper to execute either one of the SNAP programs. This control allows for a fine-level of timing and parameter control that isn't guaranteed with manual execution. Python's \texttt{subprocess} library can interoperate with Ubuntu and execute shell commands specified by strings in the script and have them execute within a subprocess. Not only does this provide exact start and end times of when the underlying subprocess is forked and joined back into the main executing process, but the library provides an extensive API to handle and report errors, output, and stream input for a variety of sources, amongst other features. Specifically, \texttt{subprocess.call([\dots])} is liberally utilised as it takes in an array of parameters (the head of which being the program binary name) and executes it as if it were a shell command. Programmatically inserting input parameters, the path of the SNAP binary - chosen by an argument passed into the \texttt{test.py} script itself - to execute, as well as any additional information and arguments for manipulating the execution or profiling characteristics (see Subsubsection \ref{subsubsec:testapi} for further details). If it is ever the case that written algorithms in the script could be deferred to an existing piece of software or bash script (e.g. \texttt{diff} or \texttt{cmp}) then this could also be used to refactor the program to utilise those instead.
+The primary goal of the test harness program is to act as a wrapper to execute either one of the SNAP programs. This control allows for a fine-level of timing and parameter control that isn't guaranteed with manual execution. Python's \texttt{subprocess} library can interoperate with Ubuntu and execute shell commands specified by strings in the script and have them execute within a subprocess. Not only does this provide exact start and end times of when the underlying subprocess is forked and joined back into the main executing process, but the library provides an extensive API to handle and report errors, output, and stream input for a variety of sources, amongst other features. Specifically, \texttt{subprocess.Popen([\dots])} is utilised as it takes in an array of parameters (the head of which being the program binary name), alongside other parameters to fine-tune inputs, outputs, and environment, and executes it as if it were a shell command. Programmatically inserting input parameters, the path of the SNAP binary - chosen by an argument passed into the \texttt{test.py} script itself - to execute, as well as any additional information and arguments for manipulating the execution or profiling characteristics (see Subsubsection \ref{subsubsec:testapi} for further details). If it is ever the case that written algorithms in the script could be deferred to an existing piece of software or bash script (e.g. \texttt{diff} or \texttt{cmp}) then this could also be used to refactor the program to utilise those instead.
 
 The \texttt{os} library handles difference between operating systems types to make the program as OS-agnostic as possible. Details such as file path separators, reading, and writing are handled through a common API. This allows for easy reading of an input or output file into the program for line-by-line parsing by several other routines and libraries used for the other stages and parts of the script. \texttt{os.remove} is used to delete the extraneous \texttt{gmon.out} files produced by profiling, while \texttt{os.path.join} is used to link scripted parts of paths together to find the output directory and particular files within it for averaging of execution times and comparison of the contents of the files - alongside the \texttt{open(\dots)} function from standard Python.
 
@@ -791,9 +853,11 @@ Secondly, in terms of the process of development, was to attain an understanding
 
 As discussed earlier, \texttt{nvcc} and \texttt{mpiicc} are both non-standard code specific compilers that defer to the standard C/C++ compiler once the specialised code they target have been compiled into object code. An issue lies in which compiler either one looks for: \texttt{nvcc} looks for the standard C++ compiler, \texttt{mpiicc} looks for the standard C compiler. This discrepancy caused an issue when trying to link the compiled object files of both compilers together.
 
-During the investigation, the provided Makefile was complete and able to compile the existing project. A few modifications were made to the parameters passed to \texttt{mpiicc}. The full list ended up being \texttt{-mkl -O3 -std=c11 -xAVX -fopenmp -parallel -DUSEMKL -DUSEVML -pg -g}. The targeted C version (\texttt{-std}) was updated to c11, \texttt{-pg} was added to allow \texttt{gprof} to profile the code, and \texttt{-g} to allow for increased debugging.
+During the investigation, the provided Makefile was complete and able to compile the existing project. A few modifications were made to the parameters passed to \texttt{mpiicc}. The full list ended up being \texttt{-O3 -std=c11 -xAVX -qopenmp -parallel -pg -g}. The targeted C version (\texttt{-std}) was updated to c11, \texttt{-pg} was added to allow \texttt{gprof} to profile the code, and \texttt{-g} to allow for increased debugging.
 
-For the new \texttt{.cu} files, two new variables were added to define the compiler and flags for these file-types:
+\texttt{-DUSEMKL} and \texttt{-DUSEVML} where removed because they are Intel-proprietary mathematical libraries optimised for use on Intel CPUs. Many of the new processes and algorithms were aiming to be adapted to use on Nvidia GPUs to had to be traded for the standard, non-Intel-optimised code. Any code between \texttt{\#ifdef USEMKL} or \texttt{\#ifdef USEVML} blocks were discarded in \texttt{dim3\_sweep}.
+
+For compilation of the new \texttt{.cu} files, two new variables were added to define the compiler and flags for this file-type:
 
 \begin{lstlisting}[breaklines]
 GPUCC=nvcc
@@ -820,33 +884,62 @@ In addition to the following compilation rule that simply takes \texttt{.cu} fil
 
 Separate \texttt{.cu} files are used to separate and easily compile CUDA code from existing MPI code (this is discussed further in the next section).
 
-Linking these files together involves a new compilation rule, shown in Figure 1ref{fig:nvccmpiicc}, using \texttt{nvcc} as the linking compiler as it is best suited to integrating the more non-standard CUDA code (MPI code is closer to standard C). It calls \texttt{mpiicc} as the backup compiler, which, in turn, will defer to the standard C compiler on the machine.
+Linking these files together involves a new compilation rule, shown in Figure \ref{fig:nvccmpiicc}, using \texttt{nvcc} as the linking compiler as it is best suited to integrating the more non-standard CUDA code (MPI code is closer to standard C). It calls \texttt{mpiicc} as the backup compiler, which, in turn, will defer to the standard C compiler on the machine.
 
 \begin{figure}[!h]
     \centering
     \begin{lstlisting}[breaklines]
 $(A_TARGET): $(A_OBJS)
-    $(GPUCC) -arch=compute_61 -code=sm_61 -m 64 -std=c++11 -ccbin=$(CC) -Xcompiler "-mkl" $(LDFLAGS) $(LIBS) $^ -o $@
+    $(GPUCC) -arch=compute_61 -code=sm_61 -m 64 -std=c++11 -ccbin=$(CC) -Xcompiler "-liomp5" $(LDFLAGS) $(LIBS) $^ -o $@
     \end{lstlisting}
     \caption{New make rule for linking MPI and CUDA}
     \label{fig:nvccmpiicc}
 \end{figure}
 
-The latest C++ variant is used, alongside targeting of the 64-bit architecture and the GTX 1070-series (and family) graphics device architecture. New here is the inclusion of \texttt{-ccbin} which points to \texttt{mpiicc} as the compiler to refer to. In order to correctly compile with this sub-compiler, the \texttt{-Xcompiler} flag is needed to build with the Intel MKL library. Fortunately, this is the only thing that's needed to correctly use this. Relevant linker flags for non-standard linking libraries (\texttt{-L/usr/local/cuda/lib64}) as well as CUDA linking variables (\texttt{-lcuda -lcudart}) are used to link all of the object files together into an executable binary. Taken together, this successfully produces a working binary that utilises both CUDA and MPI and OpenMP.
+The latest C++ variant is used, alongside targeting of the 64-bit architecture and the GTX 1070-series (and family) graphics device architecture. New here is the inclusion of \texttt{-ccbin} which points to \texttt{mpiicc} as the compiler to refer to. In order to correctly compile with this sub-compiler, the \texttt{-Xcompiler} flag is needed to build with the \texttt{-liomp5} flag to ensure that the OpenMP library is referenced correctly. Fortunately, this is the only thing that's needed to correctly use this. Relevant linker flags for non-standard linking libraries (\texttt{-L/usr/local/cuda/lib64}) as well as CUDA linking variables (\texttt{-lcuda -lcudart}) are used to link all of the object files together into an executable binary. Taken together, this successfully produces a working binary that utilises both CUDA and MPI and OpenMP.
 
-% TODO
 \subsubsection{Externalised CUDA Algorithms}
+
+Mentioned earlier was the fact that CUDA and MPI code need to be compiled in separate files for the compilers to read and process them correctly. Using headers files, it is possible to reference the CUDA function names and call them from within a file that contains standard and/or MPI-specific calls, but the actual implementation needs to be in its on file.
+
+Data type definitions and respective macros were extracted from \texttt{snap.h} into a new header \texttt{snap\_data.h} which was imported in with a conditional statement so that's it's only included once. This allowed it to be referenced separately in a new header file called \texttt{dim3\_sweep\_cuda.h} which defines all of the prototypes for CUDA-specific versions of the existing sweep implementation. 
+
+\texttt{nvcc} utilised the C++ compiler and code natively, \texttt{mpiicc} does not, opting to default to C instead. Whilst similar, the two language are different and compilation of one language with the other's compiler would cause issues. Fixing this just involves, in any \texttt{.cu} file the needs to be compiled and linked, either wrapping or decorating the called code or referenced \texttt{\#include} file with \texttt{extern "C"}. This allows for proper C-like linking style of the compiled object files.
+
+
+\subsubsection{Introduction of CUDA}
+
+\begin{itemize}
+    \item Translated dim3\_sweep to a cuda file
+    \item Altered the call in octsweep
+    \item Introduced a kernel function
+    \item Moved logic into that
+    \item cudaMalloc, cudaMemcpy...
+\end{itemize}
+
+After much research, tried-and-failed attempts at implementing or thinking of new designs, work started on the partial rewrite design. Beginning implementation of the partial rewrite design involved creating a new blank \texttt{.cu} file that could be compiled with the above rules.
+
+The \texttt{dim3\_sweep} algorithm was transferred in verbatim and renamed \texttt{dim3\_sweep\_cuda} to avoid name clashing. Altering this algorithm is the fundamental step to starting CUDA integration as, if the implementation is to work up to loop unrolling, the first stage is to get the innermost part of the system sorted.
+
+Parts of the algorithm that were decorated with OpenMP directives had these directives moved and their position notes as this would influence the CUDA implementation insofar as which variables to transfer to the kernel function, how a for loop would be divided into N threads instead etc.
+
+The call in \texttt{octsweep} to the previous function was replaced by the new function instead.
+
+Host code cannot immediately call CUDA code as a lot of initialisation is required before a CUDA kernel can be executed. Data must be size allocated and transferred to the graphics device before any work can be done. This process involves introducing the CUDA \texttt{\#include}s and thus compilation issues. It was better to change the new dim3\_sweep\_cuda function into an entry point subroutine that establishes everything and defers to another kernel function to run the algorithm.
+
+Centrally, the idea was to run all of the inner loop iterations simultaneously with synchronisation periods and data transfer to make calculation identical to before. The upper limit of the inner loop was used as the threads per block value in the kernel call:
+
+\begin{lstlisting}[breaklines]
+diagonal_loop<<<1, DIAG_1D(d-1).lenc>>>(...);
+\end{lstlisting}
+
+Implementation suspended here to start the first round of testing to provide assurances that the solution was on the right course and still producing the same results as before. Unfortunately, deep issues emerged with the implementation. First and foremost was the CUDA parallelisation strategy was wrong and yielded 0 values and single iterations instead of multiple emerged. The complexity and obscurity of the algorithm and port added to the time pressures and ultimately a result-identical implementation couldn't be made in time. This setback is discussed in the reflection section below (Section \ref{sec:reflection}), and the testing plan and profile for this project and future attempts detailed below.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Testing}
 \label{sec:testing}
-% TODO:
-% Test plan
-% Local Testing + Results
-% Cluster Testing + Results
-% Analysis
 
 Verification of the modified software will take place in two stages on different sized platforms, as outlined in subsubsections \ref{subsubsec:projmgmt_localtesting} (Local Development Platform) and \ref{subsubsec:clusters} (Computing Clusters) so see if the code scales. The primary objective is to attempt to observe a time-decrease over every problem size in the best case scenario. Other objectives are:
 
@@ -862,55 +955,126 @@ There are a couple of main variables that would immediately effect the performan
 
 To meet these objectives, the following test plan is laid out. Cluster-based testing may be omitted depending upon the results obtained during local testing - it may be the case that there is no apparent performance increase.
 
-Starting with local testing:
 \begin{figure}[!h]
     \centering
-    \begin{tabular}{|l|l|}
+    \begin{tabular}{|p{0.75cm}|p{0.75cm}|p{0.75cm}|p{0.75cm}|r|r|}
         \hline
-        Input File & Procs \\
+        \multicolumn{2}{|l|}{Testing} & \multicolumn{2}{|l|}{Local} &\multicolumn{2}{|l|}{Cluster} \\
         \hline
-        in01 & 4 \\
-        in02 & 6 \\
-        in03 & 6 \\
-        in04 & 4 \\
-        in05 & 4 \\
-        in06 & 4 \\
-        in07 & 8 \\
-        in08 & 8 \\
-        in09 & 2 \\
-        in10 & 4 \\
-        in11 & 4 \\
-        in12 & 4 \\
-        in13 & 4 \\
-        in14 & 1 \\
+        Input File & Procs & CPU Time & GPU Time & Compute & Fat \\
+        \hline
+        in01 & 4 &  &  &  &  \\
+        \hline
+        in02 & 6 &  &  &  &  \\
+        \hline
+        in03 & 6 &  &  &  &  \\
+        \hline
+        in04 & 4 &  &  &  &  \\
+        \hline
+        in05 & 4 &  &  &  &  \\
+        \hline
+        in06 & 4 &  &  &  &  \\
+        \hline
+        in07 & 8 &  &  &  &  \\
+        \hline
+        in08 & 8 &  &  &  &  \\
+        \hline
+        in09 & 4 &  &  &  &  \\
+        \hline
+        in10 & 4 &  &  &  &  \\
+        \hline
+        in11 & 4 &  &  &  &  \\
+        \hline
+        in12 & 4 &  &  &  &  \\
+        \hline
+        in13 & 4 &  &  &  &  \\
+        \hline
+        in14 & 1 &  &  &  &  \\
         \hline
     \end{tabular}
+    \caption{Proposed test plan for the project}
     \label{table:localtestplan}
 \end{figure}
 
-Once, and only if, all of the testing has passed up until this point, we can proceed with cluster-based testing:
+The number of processes has to remain fixed as it must always equal \texttt{npey} $\times$ \texttt{npez}. Multiples above or below can confuse the way the communication channels are established and cause initialisation errors. Each of the times will be averaged over at least three runs in order to provide a more accurate picture of the performance for that particular input.
 
-\begin{figure}[!h]
-    \centering
-    \begin{tabular}{|l|l|}
-        \hline
-        Value 1 & Value 2 \\
-        \hline
-        1 & 2 \\
-        \hline
-    \end{tabular}
-    \label{table:clustertestplan}
-\end{figure}
+Comparison between each run of the input file will be done to gauge the consistency of the application should an implementation not be suitable or reliable. Comparison between CPU and GPU versions will subsequently gauge the accuracy of the modified version.
+
+Once, and only if, all of the local testing has passed up until this point and there is at least some improvement in the average reported times of the solution, testing can proceed onto the Tinis computing cluster. Cluster-based testing will take place by crafting slurm jobs in such a way that CPU-based executions are run on compute nodes, and GPU-based executions are run on fat nodes. Identical thread and process counts should only highlight, if anything, differences in the processor's performance. This is likely to not be a large contributing factor if there is a difference in time because the two types of nodes have similar specification processors on-board.
 
 
 \subsection{Local Testing Results}
 \label{subsec:testing_local}
 
-\subsection{Cluster Testing Results}
-\label{subsec:testing_cluster}
+Below are the averaged execution times for the original SNAP binary. The times provided are averaged over three runs for fairness and reliability.
 
-\subsection{Results}
-\label{subsec:results}
+\begin{figure}[!h]
+    \centering
+    \begin{tabular}{|p{0.75cm}|p{0.75cm}|r|}
+        \hline
+        \multicolumn{2}{|l|}{Testing} & Local \\
+        \hline
+        Input File & Procs & CPU Time \\
+        \hline
+        in01 & 4 & 0.765 \\
+        \hline
+        in02 & 6 & 0.506 \\
+        \hline
+        in03 & 6 & 0.553 \\
+        \hline
+        in04 & 4 & 0.776 \\
+        \hline
+        in05 & 4 & 0.619 \\
+        \hline
+        in06 & 4 & 0.633 \\
+        \hline
+        in07 & 8 & 1.025 \\
+        \hline
+        in08 & 8 & 1.163 \\
+        \hline
+        in09 & 4 & 6.976 \\
+        \hline
+        in10 & 4 & 22.290 \\
+        \hline
+        in11 & 4 & 6.471 \\
+        \hline
+        in12 & 4 & 20.405 \\
+        \hline
+        in13 & 4 & 24.268 \\
+        \hline
+        in14 & 1 & 6.692 \\
+        \hline
+    \end{tabular}
+    \caption{Obtained results from the original SNAP binary}
+    \label{table:results}
+\end{figure}
+
+The final binary of the GPU-based SNAP program compiles and executes, but does not provide non-zero output and so a comparison is unable to be drawn against the existing version. Compilation and execution with the integrated CUDA functionality shows promise, however. Reasoning and thoughts on the matter are examined and reviewed in the next section.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Reflection}
+\label{sec:reflection}
+% Graham Gibbs - Reflective Cycle (1988)
+
+Unfortunately the project didn't turn out to be a success. A lot of knowledge, practical and theoretical, was learned and developed over the course of the time spent on it, however. An opportunity has presented itself at the end of development to gain more of an insight as to what happened and how to best move forward, ensuring a better outcome in the future.
+
+Using a reflective model such as the Gibb's Reflective Cycle (Figure \ref{fig:gibbscycle}), we may break down and evaluate the issue and then formulate a plan for the next time it has the potential to arise.
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{images/gibbs-cycle.png}
+    \caption{Gibbs' Reflective Cycle}
+    \label{fig:gibbscycle}
+\end{figure}
+
+All things considered, the major shortfalls of the project were improper analysis of the code base before development, failure to adequately refactor the source code to make variable names more intuitive and the procedures understandable\footnote{It's a common fault of legacy systems that information gets lost and often they're programmed in a way that isn't conducive to future maintenance without a lot of pain.}. This led, in the end, to an unsuccessful modification of the program and no results.
+
+Whilst this is far from ideal, a large amount of knowledge in the areas of programming general-purpose software for use on graphics devices, and high-performance computing in general, has been gained, with the aim to carry this forward into future projects that will utilise these skills.
+
+The field of miniapps is a new one and there will always be the opportunity to revisit this endeavour. A solid testing strategy was in place to confirm and verify the efficacy and efficiency of the solution, and the research and investigatory phase of the project was a success. Cumbersome hurdles such as getting different compilers to interoperate with one another, as well as linking various different object files together into one executable, were difficult, but lessons and techniques have also been gleaned from this experience - ones to take forward and document for others.
+
+Increased tooling and efforts to scrutinise a code base and deployment of established designs will not only help develop a further understanding of the problem for next time, but will pave the way for more in-depth and suitable design choices.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -918,33 +1082,43 @@ Once, and only if, all of the testing has passed up until this point, we can pro
 \section{Conclusion}
 \label{sec:conclusion}
 
+This project showed the course and cutting-edge nature of miniapps, the latest field in HPC. A good understanding of the problem domain was established and related works in the field comprehensively explored. A proposed GPU-accelerated design for a performance-enhancing modification to SNAP, one such miniapp, was developed given analysis of the code base from time-based profiling.
+
+Many implementation hurdles were overcome, but ultimately the project couldn't be completed. This is not to overshadow the gain in knowledge and understanding that this opportunity brought about, however. Several better choices and steps were reflected upon and a path laid for future endeavours.
+
+Throughout the course of this project, several limitations and improvements have been encountered and noted and are itemised in the following sections.
+
 \subsection{Limitations}
 \label{subsec:limitations}
 
+These limitations were either found to be a limitation of the technology, of the existing code, or of the approach taken or the implementation chosen - anything that could be improved if this project were undertaken again.
+
 \begin{itemize}
-    \item Very proprietary code base
+    \item \textbf{Environment hard to configure}: Installation of Intel's MPI libraries and Nvidia's CUDA Toolkit on a consistent base with the correct drivers and environment variables and link set-up is hard to do correctly the first time. Drivers would occasionally unload, installations would fail half way through, or other myriad hindrances occurring.
+    \item \textbf{Very unintuitive coding style}: Intel's port of SNAP heavily utilised short variable names and copious amounts of macros in order to ``simplify'' the process of indexing common array elements or accessing data structures. As a legacy piece of software been experimented on by a third-party, it was very unintuitive to modify, often needing to resort to code analysis tools and tricks to attempt to gain a fraction more understanding of the code.
+    \item \textbf{Hybrid approaches like this aren't common}: Guidance on topics such as these are few and far between. There is a scattering of written material, online and offline, that aided with this project. However, especially with regards to linking the various object files together, it was a case of reading the documentation for each compiler and the errors that resulted after each attempt in order to get things to work by hand.
+
+    Debugging and profiling tools and procedures for hybridised projects are difficult too. Individual tools work well, but the combination of them is sometimes found wanting.
 \end{itemize}
 
 \subsection{Improvements}
 
-Over the course of the project, several issues or development quirks came to light in almost every aspect of the pipeline. Several key improvements that could be made to the project are presented below that could rectify these should subsequent or related projects take on a similar endeavour to the one presented in this report:
+Following on from these limitations, key improvements or remedies for these issues can be found below. Additional improvements are mentioned that would accelerate and improve the process and overall project, also.
 
 \begin{itemize}
-    \item \textbf{Texture memory}: One core feature in the CUDA library that wasn't explored due to learning the legacy code base, pursuing alternative designs, and other time constraints, is texture memory and the potential solution and performance benefits it could bring. Texture memory is specialised, cached memory that improves the memory bandwidth of a running parallel application by exploiting the spatial locality of the data in question, as in Figure \label{fig:texmem} shown earlier.
-    
-        
+    \item \textbf{Texture memory}: One core feature in the CUDA library that wasn't explored due to learning the legacy code base, pursuing alternative designs, and other time constraints, is texture memory and the potential solution and performance benefits it could bring. Texture memory is specialised, cached memory that improves the memory bandwidth of a running parallel application by exploiting the spatial locality of the data in question, as in Figure \label{fig:texmem} shown earlier.        
     
     For restricted transport-sweep problems over two dimensions, texture memory for the implementation of the grid would greatly speed up reads from memory. Each thread can operate a different directional sweep across the same cached texture, synchronise all of the threads, and aggregate the results back before transferring data back to main memory and the CPU. 
 
     This approach has promise and would be ideal to pursue further for problems like SNAP.
 
-    \item \textbf{Containerisation}: An issue that appeared time and again during the initial investigation stages was the lack of other projects that had tied together MPI and CUDA as this project was seeking to do. Whilst not unusual for new and novel work, the lack of supporting documentation for this use-case proved to be a hinderance to time and slowed parts of the project down. A key piece of future work for this project in the future could be the establishment of a Docker container (a software housing that guarantees consistency of execution no matter what hardware it is run on) to hold binaries and settings for future release and other researchers to use the technologies together, alongside supporting documentation detailing lessons learned during the course of development.
+    \item \textbf{Containerisation}: An issue that appeared time and again during the initial investigation stages was the lack of other projects that had tied together MPI and CUDA as this project was seeking to do. Whilst not unusual for new and novel work, the lack of supporting documentation for this use-case proved to be a hindrance to time and slowed parts of the project down. A key piece of future work for this project in the future could be the establishment of a Docker container (a software housing that guarantees consistency of execution no matter what hardware it is run on) to hold binaries and settings for future release and other researchers to use the technologies together, alongside supporting documentation detailing lessons learned during the course of development.
 
     \item \textbf{Standardised input data format}: Modernising and documenting the input data structure would help to vastly improve the fidelity and flexibility of the program by allowing faster and more intuitive changes to be made without prior knowledge. As it stands, the input format is very proprietary and analysis of the code, particularly \texttt{input.c}, is needed in order to interpret the variables and what they mean in context.
     
     Utilising a modern, global data standard such as JSON or XML over a whitespace dependent ordering would increase the usefulness of input files used for testing. Not only are there high-performance, fast, compact parsing libraries available for these formats but they're also intrinsically easier to document and modify.
 
-    \item \dots
+    \item \textbf{Rename all variables}: Improving the look and usefulness of variable names, comments, and structure would greatly improve the readability and maintainability of the code.
 
 \end{itemize}
 
